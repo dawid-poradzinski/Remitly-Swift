@@ -23,19 +23,21 @@ public class SwiftCode {
     @Id
     private String swiftCode;
 
-    // Every SwiftCode needs to have a corepsonding bank name
-    @ManyToOne
-    @JoinColumn(name = "bankName", nullable = false)
-    private BankName bankName;
+    private String address;
+   
+    private Boolean isHeadquarter;
 
-    // Every SwiftCode needs to have a corespodning country
+
+    
+    @ManyToOne
+    @JoinColumn(name = "name", nullable = false)
+    private Bank bank;
+
     @ManyToOne
     @JoinColumn(name = "countryISO2", nullable = false)
     private Country country;
 
-    private String address;
 
-    private Boolean isHeadquarter;
 
     @OneToMany(mappedBy = "headquarter", fetch = FetchType.LAZY)
     @JsonManagedReference
@@ -44,4 +46,5 @@ public class SwiftCode {
     @ManyToOne
     @JoinColumn(name = "headquarterSwiftCode", nullable = true)
     private SwiftCode headquarter;
+    
 }

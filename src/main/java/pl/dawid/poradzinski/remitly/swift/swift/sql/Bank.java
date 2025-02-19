@@ -16,10 +16,10 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @Entity
-public class BankName {
+public class Bank {
     
     @Id
-    private String bankName;
+    private String name;
     
     /**
      * A one-to-many relationship representing a set of SwiftCodes associated with this entity.  
@@ -31,7 +31,8 @@ public class BankName {
     @JsonBackReference
     private Set<SwiftCode> swiftCodes;
 
-    public BankName(String bankName) {
-        this.bankName = bankName;
+    public Bank(String name) {
+        this.name = name;
     }
+    
 }
