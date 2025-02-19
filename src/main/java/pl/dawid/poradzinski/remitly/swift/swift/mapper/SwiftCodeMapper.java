@@ -19,8 +19,8 @@ public class SwiftCodeMapper {
             
             swiftCode.getAddress(),
             swiftCode.getBank().getName(),
-            swiftCode.getCountry().getCountryISO2(),
-            swiftCode.getCountry().getCountryName(),
+            swiftCode.getCountry().getISO2(),
+            swiftCode.getCountry().getName(),
             swiftCode.getIsHeadquarter(),
             swiftCode.getSwiftCode(),
 
@@ -40,7 +40,7 @@ public class SwiftCodeMapper {
 
             swiftCode.getAddress(),
             swiftCode.getBank().getName(),
-            swiftCode.getCountry().getCountryISO2(),
+            swiftCode.getCountry().getISO2(),
             swiftCode.getIsHeadquarter(),
             swiftCode.getSwiftCode()
 
@@ -60,8 +60,8 @@ public class SwiftCodeMapper {
 
         Country country = new Country();
         
-        country.setCountryISO2(dto.countryISO2());
-        country.setCountryName(dto.countryName());
+        country.setISO2(dto.countryISO2());
+        country.setName(dto.countryName());
         
         swiftCode.setCountry(country);
         swiftCode.setIsHeadquarter(dto.isHeadquarter());

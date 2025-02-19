@@ -15,8 +15,8 @@ public class CountryMapper {
     public CountryDTO entityToDTO(Country country) {
         
         return new CountryDTO(
-            country.getCountryISO2(),
-            country.getCountryName(),
+            country.getISO2(),
+            country.getName(),
             country.getSwiftCodes().stream().map( branch -> swiftCodeMapper.entityBranchToDTO(branch)).toList()
         );
 

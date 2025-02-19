@@ -34,7 +34,7 @@ public class SwiftCode {
     private Bank bank;
 
     @ManyToOne
-    @JoinColumn(name = "countryISO2", nullable = false)
+    @JoinColumn(name = "ISO2", nullable = false)
     private Country country;
 
 
