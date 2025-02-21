@@ -62,7 +62,10 @@ public class ExcelUploadService {
 
             XSSFSheet sheet = workbook.getSheetAt(0);
 
-            Set<Country> countries = new HashSet<>();
+            // TODO get all existing countries from db
+            Set<Country> dbCountries = new HashSet<>();
+
+            Set<Country> newCountries = new HashSet<>();
 
             StreamSupport.stream(sheet.spliterator(), false).skip(1).forEach(
 
@@ -102,7 +105,8 @@ public class ExcelUploadService {
 
                     }
 
-                    countries.add(country);
+                    //TODO check if country already exist
+                    //TODO if iso2 and name in db is different throw exception
                     swiftCode.setCountry(country);
 
                     swiftCodes.add(swiftCode);
@@ -111,7 +115,7 @@ public class ExcelUploadService {
 
             );
 
-            //TODO save countries to database
+            //TODO save new countries to database
 
         } catch (IOException e) {
 

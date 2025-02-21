@@ -1,5 +1,7 @@
 package pl.dawid.poradzinski.remitly.swift.swift.mapper;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
 import pl.dawid.poradzinski.remitly.swift.swift.dto.SwiftCodeDTO;
@@ -11,9 +13,10 @@ import pl.dawid.poradzinski.remitly.swift.swift.sql.SwiftCode;
 public class SwiftCodeMapper {
     
     /*
-     * Returns view of a SwiftCode with all data to serialize
+     * Returns view of a SwiftCode with all data
      */
-    public SwiftCodeDTO entityHeadquarterToDTO(SwiftCode swiftCode) {
+
+    public SwiftCodeDTO entityAsMainToDTO(SwiftCode swiftCode, boolean isHeadquarter) {
 
         return new SwiftCodeDTO (
             
@@ -24,17 +27,32 @@ public class SwiftCodeMapper {
             swiftCode.getIsHeadquarter(),
             swiftCode.getSwiftCode(),
 
-            swiftCode.getBranches().stream()
-            .map(branch -> entityBranchToDTO(branch))
-            .toList()
+            isHeadquarter ? mapBranchesInHeadquarter(swiftCode) : null
 
         );
+
     }
 
-    /*
-     * Returns view of a SwiftCode without country name and branches to serialize
+    /**
+     * map branches of headquarter from entity to DTO
+     * @param swiftCode Headquarter entity, which branches will be converted
+     * @return {@code Empty List} if there are no branches, otherwise {@code List<SwiftCodeDTO>} of branches
      */
-    public SwiftCodeDTO entityBranchToDTO(SwiftCode swiftCode) {
+
+    public List<SwiftCodeDTO> mapBranchesInHeadquarter(SwiftCode swiftCode) {
+
+        return swiftCode.getBranches() == null ? List.of() : swiftCode.getBranches().stream()
+        .map(branch -> entityInsideOtherToDTO(branch))
+        .toList();
+
+    }
+
+
+    /*
+     * Returns view of a SwiftCode without country name and branches
+     */
+
+    public SwiftCodeDTO entityInsideOtherToDTO(SwiftCode swiftCode) {
 
         return new SwiftCodeDTO (
 
@@ -45,6 +63,7 @@ public class SwiftCodeMapper {
             swiftCode.getSwiftCode()
 
         );
+
     }
 
     /*
@@ -68,6 +87,7 @@ public class SwiftCodeMapper {
         swiftCode.setSwiftCode(dto.swiftCode());
 
         return swiftCode;
+
     }
     
 }

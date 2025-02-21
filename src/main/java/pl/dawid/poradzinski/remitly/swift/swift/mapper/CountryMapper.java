@@ -1,5 +1,7 @@
 package pl.dawid.poradzinski.remitly.swift.swift.mapper;
 
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
@@ -17,7 +19,7 @@ public class CountryMapper {
         return new CountryDTO(
             country.getISO2(),
             country.getName(),
-            country.getSwiftCodes().stream().map( branch -> swiftCodeMapper.entityBranchToDTO(branch)).toList()
+            country.getSwiftCodes() == null ? List.of() : country.getSwiftCodes().stream().map( branch -> swiftCodeMapper.entityInsideOtherToDTO(branch)).toList()
         );
 
     }
