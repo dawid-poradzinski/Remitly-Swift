@@ -162,7 +162,7 @@ public class CountryServiceTest {
     
         // When
 
-        List<CountryDTO> result = countryService.getAllExistingCountries();
+        Set<CountryDTO> result = countryService.getAllExistingCountries();
     
         // Then
 
@@ -185,14 +185,14 @@ public class CountryServiceTest {
     
         // When
 
-        List<CountryDTO> result = countryService.getAllExistingCountries();
+        List<CountryDTO> result = countryService.getAllExistingCountries().stream().toList();
     
         // Then
 
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals("PL", result.get(0).countryISO2());
-        assertEquals("US", result.get(1).countryISO2());
+        assertEquals("US", result.get(0).countryISO2());
+        assertEquals("PL", result.get(1).countryISO2());
     }
 
 }
