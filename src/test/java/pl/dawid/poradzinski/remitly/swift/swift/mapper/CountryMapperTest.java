@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -48,16 +49,21 @@ public class CountryMapperTest {
     }
 
     @Test
-    void testMapWithoutSwiftCodesToDTO() {
+    void testMapCountryWithoutSwiftCodesToDTO() {
 
+        // Given
         Country country = new Country();
 
         country.setISO2("PL");
         country.setName("POLAND");
         country.setSwiftCodes(null);
 
-        CountryDTO result = countryMapper.entityToDTO(country);
+        // When
+
+        CountryDTO result = countryMapper.entityToDTOAll(country);
         
+        // Then
+
         assertNotNull(result);
         assertNotNull(result.swiftCodes());
         assertEquals(0, result.swiftCodes().size());
@@ -65,7 +71,9 @@ public class CountryMapperTest {
     }
 
     @Test
-    void testMapWithSwiftCodesToDTO() {
+    void testMapCountryWithSwiftCodesToDTO() {
+
+        // Given
 
         Country country = new Country();
 
@@ -84,7 +92,9 @@ public class CountryMapperTest {
 
         country.setSwiftCodes(Set.of(headquarterSwiftCode));
 
-        CountryDTO result = countryMapper.entityToDTO(country);
+        // Then
+
+        CountryDTO result = countryMapper.entityToDTOAll(country);
         
         assertNotNull(result);
         assertNotNull(result.swiftCodes());
@@ -130,7 +140,7 @@ public class CountryMapperTest {
 
         // When
 
-        CountryDTO result = countryMapper.entityToDTO(country);
+        CountryDTO result = countryMapper.entityToDTOAll(country);
 
         // Then
 
@@ -141,6 +151,53 @@ public class CountryMapperTest {
         
         assertNotNull(swiftCodeDTO);
         assertNull(swiftCodeDTO.branches());
+
+    }
+
+    @Test
+    void testMapCountryToDTOExceptSwiftCodes() {
+
+        // Given
+
+        Country country = new Country();
+
+        country.setISO2("PL");
+        country.setName("POLAND");
+
+        SwiftCode headquarterSwiftCode = new SwiftCode();
+
+        headquarterSwiftCode.setAddress("Address");
+        headquarterSwiftCode.setBank(new Bank("Bank"));
+        headquarterSwiftCode.setBranches(null);
+        headquarterSwiftCode.setCountry(country);
+        headquarterSwiftCode.setHeadquarter(null);
+        headquarterSwiftCode.setIsHeadquarter(true);
+        headquarterSwiftCode.setSwiftCode("AAABBBCCXXX");
+
+        SwiftCode branchSwiftCode = new SwiftCode();
+
+        branchSwiftCode.setAddress("Address");
+        branchSwiftCode.setBank(new Bank("Bank"));
+        branchSwiftCode.setBranches(null);
+        branchSwiftCode.setCountry(country);
+        branchSwiftCode.setHeadquarter(headquarterSwiftCode);
+        branchSwiftCode.setIsHeadquarter(false);
+        branchSwiftCode.setSwiftCode("AAABBBCC001");
+
+        headquarterSwiftCode.setBranches(Set.of(branchSwiftCode));
+
+        country.setSwiftCodes(Set.of(headquarterSwiftCode,branchSwiftCode));
+
+        // When
+
+        CountryDTO result = countryMapper.entityToDTOExceptSwiftCodes(country);
+
+        // Then
+
+        assertNotNull(result);
+        assertEquals("PL", result.countryISO2());
+        assertEquals("POLAND", result.countryName());
+        assertNull(result.swiftCodes());
 
     }
 
