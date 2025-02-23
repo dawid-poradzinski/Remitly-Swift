@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -28,6 +29,7 @@ public class ExcelUploadService {
     
 
     private final CountryService countryService;
+    private final BankService bankService;
 
     /**
      * Checks if the provided file is a valid Excel file based on its MIME type.
@@ -61,6 +63,8 @@ public class ExcelUploadService {
 
     public List<SwiftCode> mapExcelToDatabaseEntities(InputStream input) {
 
+        // List of new swiftCodes
+
         List<SwiftCode> swiftCodes = new ArrayList<>();
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(input)) {
@@ -71,9 +75,12 @@ public class ExcelUploadService {
 
             Map<String, String> countriesMap = countryService.getAllExistingCountries().stream().collect(Collectors.toMap(CountryDTO::countryISO2, CountryDTO::countryName));
 
-            //TODO list of all existing banks in db
+            // list of all existing banks in db
+
+            Set<String> banksNameInDb = bankService.getAllBanksName();
 
             List<Country> newCountries = new ArrayList<>();
+            List<Bank> newBanks = new ArrayList<>();
 
             StreamSupport.stream(sheet.spliterator(), false).skip(1).forEach(
 
@@ -134,6 +141,12 @@ public class ExcelUploadService {
 
                     }
 
+                    if(!banksNameInDb.contains(swiftCode.getBank().getName())) {
+
+                        newBanks.add(swiftCode.getBank());
+
+                    }
+
                     swiftCode.setCountry(country);
 
                     swiftCodes.add(swiftCode);
@@ -143,6 +156,7 @@ public class ExcelUploadService {
             );
 
             countryService.saveCountires(newCountries);
+            bankService.saveBanks(newBanks);
 
         } catch (IOException e) {
 

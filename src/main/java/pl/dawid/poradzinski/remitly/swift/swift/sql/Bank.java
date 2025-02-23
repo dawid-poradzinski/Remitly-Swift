@@ -27,7 +27,7 @@ public class Bank {
      * by marking this side of the relationship as the back reference.
      */
 
-    @OneToMany(fetch = FetchType.LAZY, mappedBy = "bankName")
+    @OneToMany(fetch = FetchType.LAZY, mappedBy = "bank")
     @JsonBackReference
     private Set<SwiftCode> swiftCodes;
 
