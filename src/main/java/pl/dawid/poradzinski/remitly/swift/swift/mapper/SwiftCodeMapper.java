@@ -39,7 +39,7 @@ public class SwiftCodeMapper {
      * @return {@code Empty List} if there are no branches, otherwise {@code List<SwiftCodeDTO>} of branches
      */
 
-    public List<SwiftCodeDTO> mapBranchesInHeadquarter(SwiftCode swiftCode) {
+    private List<SwiftCodeDTO> mapBranchesInHeadquarter(SwiftCode swiftCode) {
 
         return swiftCode.getBranches() == null ? List.of() : swiftCode.getBranches().stream()
         .map(branch -> entityInsideOtherToDTO(branch))
