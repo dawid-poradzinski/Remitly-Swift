@@ -1,6 +1,5 @@
 package pl.dawid.poradzinski.remitly.swift.swift.service;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -160,12 +159,6 @@ public class SwiftCodeServiceTest {
         verify(swiftCodeRepository).findById("AAABBBCCXXX");
         verify(swiftCodeRepository).delete(headquarter);
 
-        // Don't save branches to delete Headquarter
-        // Don't save headquarter, to delete from Branch
-
-        verify(swiftCodeRepository, never()).saveAll(Set.of(branch));
-        verify(swiftCodeRepository, never()).save(headquarter);
-
     }
 
     @Test
@@ -184,11 +177,6 @@ public class SwiftCodeServiceTest {
         verify(swiftCodeRepository).findById("AAABBBCCXXX");
         verify(swiftCodeRepository).delete(headquarter);
 
-        // Save branches to delete Headquarter
-        // Don't save headquarter, to delete from Branch
-
-        verify(swiftCodeRepository).saveAll(Set.of(branch));
-        verify(swiftCodeRepository, never()).save(headquarter);
         assertNull(branch.getHeadquarter());
         
     }
@@ -209,14 +197,9 @@ public class SwiftCodeServiceTest {
         verify(swiftCodeRepository).findById("AAABBBCC000");
         verify(swiftCodeRepository).delete(branch);
 
-        // Don't save branches to delete Headquarter
-        // Save headquarter, to delete from Branch
+        assertNull(branch.getHeadquarter());
 
-        verify(swiftCodeRepository, never()).saveAll(anyList());
-        verify(swiftCodeRepository).save(headquarter);
-        verify(swiftCodeRepository).delete(branch);
-
-        assertFalse(headquarter.getBranches().contains(branch));
+       
     }
 
     @Test
@@ -237,13 +220,7 @@ public class SwiftCodeServiceTest {
             verify(swiftCodeRepository).findById("AAABBBCC000");
             verify(swiftCodeRepository).delete(branch);
     
-            // Don't save branches to delete Headquarter
-            // Don't save headquarter, to delete from Branch
-    
-            verify(swiftCodeRepository, never()).saveAll(anyList());
-            verify(swiftCodeRepository, never()).save(headquarter);
-            verify(swiftCodeRepository).delete(branch);
-
+           
     }
 
     @Test

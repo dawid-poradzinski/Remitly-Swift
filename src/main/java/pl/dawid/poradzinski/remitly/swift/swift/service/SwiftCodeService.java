@@ -63,18 +63,17 @@ public class SwiftCodeService {
 
         SwiftCode swiftCode = swiftCodeRepository.findById(swift).orElseThrow(SwiftCodeDoesntExistException::new);
 
-        if(swiftCode.getIsHeadquarter() && swiftCode.getBranches() != null) {
+        // Delete relation for branches with headquarter
+
+        if(swiftCode.getBranches() != null) {
 
             swiftCode.getBranches().forEach(branch -> branch.setHeadquarter(null));
-            swiftCodeRepository.saveAll(swiftCode.getBranches());
 
         }
-        else if (swiftCode.getHeadquarter() != null) {
+        
+        // Delete relation with headquarter
 
-            swiftCode.getHeadquarter().getBranches().remove(swiftCode);
-            swiftCodeRepository.save(swiftCode.getHeadquarter());
-  
-        }
+        swiftCode.setHeadquarter(null);
 
         swiftCodeRepository.delete(swiftCode);
 
