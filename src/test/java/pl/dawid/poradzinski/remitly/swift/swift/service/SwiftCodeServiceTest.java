@@ -1,7 +1,9 @@
 package pl.dawid.poradzinski.remitly.swift.swift.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -24,8 +26,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
+import pl.dawid.poradzinski.remitly.swift.swift.dto.SwiftCodeDTO;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.InvalidFileFormatException;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeDoesntExistException;
+import pl.dawid.poradzinski.remitly.swift.swift.mapper.SwiftCodeMapper;
 import pl.dawid.poradzinski.remitly.swift.swift.repository.SwiftCodeRepository;
 import pl.dawid.poradzinski.remitly.swift.swift.sql.Bank;
 import pl.dawid.poradzinski.remitly.swift.swift.sql.Country;
@@ -40,6 +44,9 @@ public class SwiftCodeServiceTest {
     @Mock
     private ExcelUploadService excelUploadService;
 
+    @Mock
+    private SwiftCodeMapper swiftCodeMapper;
+
     @InjectMocks
     private SwiftCodeService swiftCodeService;
 
@@ -47,7 +54,6 @@ public class SwiftCodeServiceTest {
     private SwiftCode headquarter;
     private SwiftCode branch;
 
-    // Saving to DB from Excel
     @BeforeEach
     void setUp() {
 
@@ -121,6 +127,7 @@ public class SwiftCodeServiceTest {
 
         verify(excelUploadService).mapExcelToDatabaseEntities(any(InputStream.class));
         verify(swiftCodeRepository).saveAll(anyList());
+        assertEquals(headquarter, branch.getHeadquarter());
 
     }
 
@@ -140,6 +147,41 @@ public class SwiftCodeServiceTest {
         verify(excelUploadService, never()).mapExcelToDatabaseEntities(any(InputStream.class));
     }
 
+    @Test
+    void shouldReturnDTOIfExist() {
+
+        // Given
+
+        when(swiftCodeRepository.findById("AAABBBCCXXX")).thenReturn(Optional.of(headquarter));
+
+        SwiftCodeDTO dto = new SwiftCodeDTO("Address", "Bank", "PL", true, "AAABBBCCXXX");
+
+        when(swiftCodeMapper.entityAsMainToDTO(headquarter, true)).thenReturn( dto );
+
+        // When
+
+        Optional<SwiftCodeDTO> optional = swiftCodeService.getBySwiftCode("AAABBBCCXXX");
+
+        assertTrue(optional.isPresent());
+        verify(swiftCodeRepository).findById("AAABBBCCXXX");
+        verify(swiftCodeMapper).entityAsMainToDTO(headquarter, true);
+
+    }
+
+    @Test
+    void shouldReturnEmptyIfDoesntExist() {
+
+        // Given
+
+        when(swiftCodeRepository.findById("AAABBBCC001")).thenReturn(Optional.empty());
+
+        Optional<SwiftCodeDTO> optional = swiftCodeService.getBySwiftCode("AAABBBCC001");
+
+        assertTrue(optional.isEmpty());
+        verify(swiftCodeRepository).findById("AAABBBCC001");
+        verify(swiftCodeMapper, never()).entityAsMainToDTO(any(SwiftCode.class), any(Boolean.class));
+
+    }
 
     @Test
     void shouldDeleteSwiftCodeOfHeadquarterWithoutBranches() {
@@ -235,6 +277,35 @@ public class SwiftCodeServiceTest {
         assertThrows(SwiftCodeDoesntExistException.class, () -> swiftCodeService.deleteBySwiftCode("AAABBBCCXXX"));
 
         verify(swiftCodeRepository, never()).delete(any(SwiftCode.class));
+    }
+
+    @Test
+    void shouldAddConnectionBetweenHeadquarterAndBranchifSwiftCodeMatch() {
+
+        branch.setHeadquarter(null);
+        headquarter.setBranches(null);
+
+        when(swiftCodeRepository.findByIsHeadquarter(true)).thenReturn(List.of(headquarter));
+        when(swiftCodeRepository.findByIsHeadquarter(false)).thenReturn(List.of(branch));
+
+        swiftCodeService.addConnectionBetweenBranchAndHeadquarter();
+
+        assertEquals(headquarter, branch.getHeadquarter());
+
+    }
+
+    @Test
+    void shouldNotAddConnectioNBetweenHeadquarterAndBranchIfSwiftCodeDoesntMatch() {
+
+        branch.setHeadquarter(null);
+        branch.setSwiftCode("BBBAAACC000");
+
+        when(swiftCodeRepository.findByIsHeadquarter(true)).thenReturn(List.of(headquarter));
+        when(swiftCodeRepository.findByIsHeadquarter(false)).thenReturn(List.of(branch));
+
+        swiftCodeService.addConnectionBetweenBranchAndHeadquarter();
+
+        assertEquals(null, branch.getHeadquarter());
     }
 
 }

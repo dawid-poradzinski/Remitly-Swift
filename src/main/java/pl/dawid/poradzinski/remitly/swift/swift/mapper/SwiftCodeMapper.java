@@ -1,5 +1,6 @@
 package pl.dawid.poradzinski.remitly.swift.swift.mapper;
 
+import java.util.Comparator;
 import java.util.List;
 
 import org.springframework.stereotype.Component;
@@ -42,7 +43,7 @@ public class SwiftCodeMapper {
     private List<SwiftCodeDTO> mapBranchesInHeadquarter(SwiftCode swiftCode) {
 
         return swiftCode.getBranches() == null ? List.of() : swiftCode.getBranches().stream()
-        .map(branch -> entityInsideOtherToDTO(branch))
+        .map(branch -> entityInsideOtherToDTO(branch)).sorted(Comparator.comparing(SwiftCodeDTO::swiftCode))
         .toList();
 
     }

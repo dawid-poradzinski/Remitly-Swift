@@ -2,6 +2,7 @@ package pl.dawid.poradzinski.remitly.swift.swift.sql;
 
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.Entity;
@@ -38,13 +39,14 @@ public class SwiftCode {
     private Country country;
 
 
-
+    
     @OneToMany(mappedBy = "headquarter", fetch = FetchType.LAZY)
     @JsonManagedReference
     private Set<SwiftCode> branches;
 
-    @ManyToOne
-    @JoinColumn(name = "headquarterSwiftCode", nullable = true)
+    @JsonIgnore
+    @ManyToOne(fetch =  FetchType.LAZY)
+    @JoinColumn(name = "headquarterSwiftCode",nullable = true)
     private SwiftCode headquarter;
     
 }

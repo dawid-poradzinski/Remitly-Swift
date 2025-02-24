@@ -1,8 +1,9 @@
 package pl.dawid.poradzinski.remitly.swift.swift.controller;
 
-import org.apache.catalina.connector.Response;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,7 +14,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 import pl.dawid.poradzinski.remitly.swift.swift.dto.CountryDTO;
+import pl.dawid.poradzinski.remitly.swift.swift.dto.SwiftCodeDTO;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.InvalidFileFormatException;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeDoesntExistException;
 import pl.dawid.poradzinski.remitly.swift.swift.service.CountryService;
 import pl.dawid.poradzinski.remitly.swift.swift.service.SwiftCodeService;
 
@@ -50,6 +53,31 @@ public class SwiftCodeController {
     public ResponseEntity<CountryDTO> returnAllSwiftCodesForSpecificCountry(@PathVariable String countryISO2Code) {
 
         return countryService.getAllDataByISO2(countryISO2Code).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());    
+
+    }
+
+    @GetMapping("/{swiftCode}")
+    public ResponseEntity<SwiftCodeDTO> returnSwiftCodeDTOForSpecificSwift(@PathVariable String swiftCode) {
+
+        return swiftCodeService.getBySwiftCode(swiftCode)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.notFound().build());
+
+    }
+
+    @DeleteMapping("/{swiftCode}")
+    public ResponseEntity<Map<String,String>> deleteSwiftCodeForSpecificSwift(@PathVariable String swiftCode) {
+
+        try {
+          
+            swiftCodeService.deleteBySwiftCode(swiftCode);
+            return ResponseEntity.ok(Map.of("message", swiftCode + " deleted succesfully"));
+            
+        } catch (SwiftCodeDoesntExistException e) {
+            
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", swiftCode + " not found in database"));
+
+        } 
 
     }
 

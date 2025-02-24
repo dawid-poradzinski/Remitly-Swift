@@ -1,7 +1,10 @@
 package pl.dawid.poradzinski.remitly.swift.swift.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +40,7 @@ public class SwiftCodeService {
                 List<SwiftCode> swiftCodes = excelUploadService.mapExcelToDatabaseEntities(file.getInputStream());
 
                 saveSwiftCodes(swiftCodes);
+                addConnectionBetweenBranchAndHeadquarter();
 
             } catch (Exception e) {
 
@@ -76,6 +80,30 @@ public class SwiftCodeService {
         swiftCode.setHeadquarter(null);
 
         swiftCodeRepository.delete(swiftCode);
+
+    }
+
+    public void addConnectionBetweenBranchAndHeadquarter() {
+
+        List<SwiftCode> headquarters = swiftCodeRepository.findByIsHeadquarter(true);
+        List<SwiftCode> branches = swiftCodeRepository.findByIsHeadquarter(false);
+
+        Map<String, SwiftCode> headquarterMap = headquarters.stream()
+            .collect(Collectors.toMap(
+                hq -> hq.getSwiftCode().substring(0, hq.getSwiftCode().length() - 3),
+                hq -> hq
+            ));
+
+        branches.forEach( branch -> {
+
+            branch.setHeadquarter(headquarterMap.getOrDefault(
+                branch.getSwiftCode().substring(0,branch.getSwiftCode().length()-3),
+                null
+            ));          
+
+        });
+
+        swiftCodeRepository.saveAll(branches);
 
     }
 

@@ -172,7 +172,7 @@ public class CountryServiceTest {
     }
     
     @Test
-    void shouldReturnCountryListWhenCountriesExist() {
+    void shouldReturnISO2AndNameListWhenCountriesExist() {
 
         // Given
 
