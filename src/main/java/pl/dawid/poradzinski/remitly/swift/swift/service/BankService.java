@@ -16,6 +16,10 @@ public class BankService {
     
     private final BankRepository bankRepository;
 
+    public void saveBank(Bank bank) {
+        bankRepository.save(bank);
+    }
+
     public Set<Bank> getAllBanks() {
 
         return bankRepository.findAll().stream().collect(Collectors.toSet());

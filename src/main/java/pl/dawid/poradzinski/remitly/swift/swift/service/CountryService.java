@@ -49,4 +49,14 @@ public class CountryService {
 
     }
 
+    public void saveCountry(Country country) {
+        countryRepository.save(country);
+    }
+
+    public Optional<Country> getByISO2OrName(String iso2, String name) {
+
+        return countryRepository.findByISO2OrName(iso2, name);
+
+    }
+
 }

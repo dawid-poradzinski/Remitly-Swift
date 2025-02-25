@@ -9,10 +9,15 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import pl.dawid.poradzinski.remitly.swift.swift.dto.SwiftCodeDTO;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.CountryConflictException;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.InvalidFileFormatException;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeAlreadyExistException;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeDoesntExistException;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeIsHeadquarterException;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeToShortException;
 import pl.dawid.poradzinski.remitly.swift.swift.mapper.SwiftCodeMapper;
 import pl.dawid.poradzinski.remitly.swift.swift.repository.SwiftCodeRepository;
 import pl.dawid.poradzinski.remitly.swift.swift.sql.Bank;
@@ -44,6 +49,7 @@ public class SwiftCodeService {
                 // Get swiftCodes from excel
 
                 List<SwiftCode> excelSwiftCodes = excelUploadService.mapExcelToDatabaseEntities(file.getInputStream());
+
                 List<SwiftCode> newSwiftCodes = new ArrayList<>();
 
                 // We need to check if iso2 and name combination isn't incorrect
@@ -67,7 +73,7 @@ public class SwiftCodeService {
 
                         // If name is different, then skip swiftCode: wrong country
 
-                        if(existingCountries.get(country.getISO2()).equals(country.getName())) {
+                        if(!existingCountries.get(country.getISO2()).equals(country.getName())) {
 
                             //TODO save info about swiftCode, that was skipped
 
@@ -122,7 +128,6 @@ public class SwiftCodeService {
 
             } catch (Exception e) {
 
-                // TODO: handle exception
                 
             }
 
@@ -161,6 +166,7 @@ public class SwiftCodeService {
 
     }
 
+    @Transactional
     public void addConnectionBetweenBranchAndHeadquarter() {
 
         List<SwiftCode> headquarters = swiftCodeRepository.findByIsHeadquarter(true);
@@ -181,7 +187,91 @@ public class SwiftCodeService {
 
         });
 
-        swiftCodeRepository.saveAll(branches);
+
+    }
+
+    public SwiftCode addNewSwiftCode(SwiftCodeDTO swiftCodeDTO) {
+
+        // If SwiftCode already exist in db, then throw exception
+
+        if(swiftCodeRepository.existsById(swiftCodeDTO.swiftCode())) {
+
+            throw new SwiftCodeAlreadyExistException(swiftCodeDTO.swiftCode() + " already in database");
+
+        }
+
+        // Map DTO to entity
+
+        SwiftCode swiftCode = swiftCodeMapper.dtoToEntity(swiftCodeDTO);
+
+        // validate swiftCode length and isHeadquarter with endsWith
+
+        validateSwiftCode(swiftCode);
+
+        bankService.saveBank(swiftCode.getBank());
+        countryService.saveCountry(swiftCode.getCountry());
+
+        if(swiftCode.getIsHeadquarter()) {
+
+            swiftCodeRepository.save(swiftCode);
+            // Look for branches and change their headquarter
+
+            List<SwiftCode> branches = swiftCodeRepository.findBySwiftCodeStartingWithAndIsHeadquarterFalse(swiftCode.getSwiftCode().substring(0,swiftCode.getSwiftCode().length()-3));
+
+            branches.forEach(branch -> branch.setHeadquarter(swiftCode));
+
+
+            swiftCodeRepository.saveAll(branches);
+
+            return swiftCode;
+
+        } else {
+
+            // Look for headquarter and add connection if exist
+
+            swiftCodeRepository.findById(
+
+                swiftCode.getSwiftCode().substring(
+                    0,
+                    swiftCode.getSwiftCode().length()-3
+                )
+                +
+                "XXX"
+
+            ).ifPresent(swiftCode::setHeadquarter);
+
+            return swiftCodeRepository.save(swiftCode);
+
+        }
+        
+    }
+
+    public void validateSwiftCode(SwiftCode swiftCode) {
+
+        // If SwiftCode length isn't 11 throw exception
+
+        if(swiftCode.getSwiftCode().length() != 11) {
+
+            throw new SwiftCodeToShortException("SwiftCode length should be 11 but is: " + swiftCode.getSwiftCode().length());
+
+        }
+
+        // If SwiftCode isHeadquarter and endsWith isn't equal, then throw exception
+
+        if(swiftCode.getIsHeadquarter() != swiftCode.getSwiftCode().endsWith("XXX")) {
+
+            throw new SwiftCodeIsHeadquarterException("isHeadquarter = " + swiftCode.getIsHeadquarter() + " but swiftCode is: " + swiftCode.getSwiftCode());
+
+        }
+
+        countryService.getByISO2OrName(swiftCode.getCountry().getISO2(), swiftCode.getCountry().getName())
+            .filter(existingCountry -> 
+                swiftCode.getCountry().getISO2().equals(existingCountry.getISO2()) ||
+                swiftCode.getCountry().getName().equals(existingCountry.getName()))
+            .ifPresent(existingCountry -> {
+                throw new CountryConflictException("ISO2 and Name in swiftCode: " + swiftCode.getCountry().getISO2() + " " + swiftCode.getCountry().getName() +
+                                                ". ISO2 and Name in db: " + existingCountry.getISO2() + " " + existingCountry.getName());
+        });
 
     }
 

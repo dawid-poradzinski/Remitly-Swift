@@ -1,6 +1,7 @@
 package pl.dawid.poradzinski.remitly.swift.swift.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,7 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import pl.dawid.poradzinski.remitly.swift.swift.dto.SwiftCodeDTO;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.InvalidFileFormatException;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeAlreadyExistException;
 import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeDoesntExistException;
+import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeIsHeadquarterException;
 import pl.dawid.poradzinski.remitly.swift.swift.mapper.SwiftCodeMapper;
 import pl.dawid.poradzinski.remitly.swift.swift.repository.SwiftCodeRepository;
 import pl.dawid.poradzinski.remitly.swift.swift.sql.Bank;
@@ -136,7 +139,7 @@ public class SwiftCodeServiceTest {
         // Then
 
         verify(excelUploadService).mapExcelToDatabaseEntities(any(InputStream.class));
-        verify(swiftCodeRepository, times(2)).saveAll(anyList());
+        verify(swiftCodeRepository).saveAll(anyList());
         assertEquals(headquarter, branch.getHeadquarter());
 
     }
@@ -316,6 +319,117 @@ public class SwiftCodeServiceTest {
         swiftCodeService.addConnectionBetweenBranchAndHeadquarter();
 
         assertEquals(null, branch.getHeadquarter());
+    }
+
+
+    @Test
+    void shouldThrowExceptionIfSwiftCodeAlreadyExistInDb() {
+
+        // Given
+        
+        when(swiftCodeRepository.existsById(headquarter.getSwiftCode())).thenReturn(true);
+
+        SwiftCodeDTO dto = new SwiftCodeDTO("Address", "Bank", "PL", "POLAND", true, headquarter.getSwiftCode());
+
+        // When & Then
+
+        assertThrows(SwiftCodeAlreadyExistException.class, () -> swiftCodeService.addNewSwiftCode(dto));
+
+    }
+
+    @Test
+    void shouldThrowExceptionIfIsHeadquarterIsntEqualToEndsWithXXX() {
+
+        // Given
+
+        when(swiftCodeRepository.existsById(headquarter.getSwiftCode())).thenReturn(false);
+
+        SwiftCodeDTO dto = new SwiftCodeDTO("Address", "Bank", "PL", "POLAND", false, headquarter.getSwiftCode());
+
+        headquarter.setIsHeadquarter(false);
+
+        when(swiftCodeMapper.dtoToEntity(dto)).thenReturn(headquarter);
+
+        // When & Then
+
+        assertThrows(SwiftCodeIsHeadquarterException.class, () -> swiftCodeService.addNewSwiftCode(dto));
+
+    }
+
+    @Test
+    void shouldSaveDTOToDbIfDoesntExistInIt() {
+
+        // Given
+
+        when(swiftCodeRepository.existsById(headquarter.getSwiftCode())).thenReturn(false);
+
+        SwiftCodeDTO dto = new SwiftCodeDTO("Address", "Bank", "PL", "POLAND", true, headquarter.getSwiftCode());
+
+        when(swiftCodeMapper.dtoToEntity(dto)).thenReturn(headquarter);
+
+        // When
+
+        swiftCodeService.addNewSwiftCode(dto);
+
+        // Then
+
+        verify(swiftCodeMapper).dtoToEntity(dto);
+        verify(swiftCodeRepository).save(headquarter);
+
+    }
+
+    @Test
+    void shouldCheckForHeadquarterInDbAndAddItIfExistAndThenSave() {
+
+        // Given
+
+        when(swiftCodeRepository.existsById(branch.getSwiftCode())).thenReturn(false);
+
+        SwiftCodeDTO dto = new SwiftCodeDTO("Address", "Bank", "PL", "POLAND", false, branch.getSwiftCode());
+
+        branch.setHeadquarter(null);
+        when(swiftCodeMapper.dtoToEntity(dto)).thenReturn(branch);
+
+        when(swiftCodeRepository.findById(branch.getSwiftCode().substring(0,branch.getSwiftCode().length()-3)+"XXX")).thenReturn(Optional.of(headquarter));
+
+        when(swiftCodeRepository.save(any(SwiftCode.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+
+        SwiftCode swiftCode = swiftCodeService.addNewSwiftCode(dto);
+        verify(swiftCodeRepository).existsById(branch.getSwiftCode());
+        verify(swiftCodeRepository).findById(headquarter.getSwiftCode());
+        assertNotNull(swiftCode.getHeadquarter());
+        verify(swiftCodeRepository).save(swiftCode);
+
+    }
+
+    @Test
+    void shouldCheckForBranchesInDbAndAddHeadquarterForThemIfTheyExistAndThenSave() {
+
+        // Given
+
+        when(swiftCodeRepository.existsById(headquarter.getSwiftCode())).thenReturn(false);
+
+        SwiftCodeDTO dto = new SwiftCodeDTO("Address", "Bank", "PL", "POLAND", true, headquarter.getSwiftCode());
+
+        branch.setHeadquarter(null);
+
+        when(swiftCodeMapper.dtoToEntity(dto)).thenReturn(headquarter);
+
+        when(swiftCodeRepository.findBySwiftCodeStartingWithAndIsHeadquarterFalse(headquarter.getSwiftCode().substring(0,headquarter.getSwiftCode().length()-3))).thenReturn(List.of(branch));
+   
+        // When
+
+        swiftCodeService.addNewSwiftCode(dto);
+
+        // Then
+
+        verify(swiftCodeRepository).existsById(headquarter.getSwiftCode());
+        verify(swiftCodeMapper).dtoToEntity(dto);
+        verify(swiftCodeRepository).findBySwiftCodeStartingWithAndIsHeadquarterFalse("AAABBBCC");
+        assertNotNull(branch.getHeadquarter());
+
     }
 
 }

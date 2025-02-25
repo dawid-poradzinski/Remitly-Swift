@@ -98,6 +98,8 @@ public class ExcelUploadService {
 
                     }
 
+                    swiftCode.setCountry(country);
+
                     swiftCodes.add(swiftCode);
 
                 }

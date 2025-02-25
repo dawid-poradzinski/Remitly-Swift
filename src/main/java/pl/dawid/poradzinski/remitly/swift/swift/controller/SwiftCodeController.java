@@ -3,10 +3,12 @@ package pl.dawid.poradzinski.remitly.swift.swift.controller;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,6 +21,7 @@ import pl.dawid.poradzinski.remitly.swift.swift.exception.InvalidFileFormatExcep
 import pl.dawid.poradzinski.remitly.swift.swift.exception.SwiftCodeDoesntExistException;
 import pl.dawid.poradzinski.remitly.swift.swift.service.CountryService;
 import pl.dawid.poradzinski.remitly.swift.swift.service.SwiftCodeService;
+import pl.dawid.poradzinski.remitly.swift.swift.sql.SwiftCode;
 
 @RestController
 @RequestMapping("/v1/swift-codes")
@@ -78,6 +81,25 @@ public class SwiftCodeController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", swiftCode + " not found in database"));
 
         } 
+
+    }
+
+    @PostMapping()
+    public ResponseEntity<Map<String,String>> addNewSwiftCode(@Validated @RequestBody SwiftCodeDTO swiftCodeDTO) {
+
+        try {
+            
+            SwiftCode swiftCode = swiftCodeService.addNewSwiftCode(swiftCodeDTO);
+
+            return ResponseEntity.ok(Map.of("message", "crated swiftcode id: " + swiftCode.getSwiftCode()));
+
+        } catch (Exception e) {
+
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+            
+        }
+
+        
 
     }
 

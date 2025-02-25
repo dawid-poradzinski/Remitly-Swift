@@ -23,4 +23,10 @@ public record SwiftCodeDTO (
         
     }
 
+    public SwiftCodeDTO(String address, String bankName, String countryISO2, String countryName, boolean isHeadquarter, String swiftCode) {
+
+        this(address, bankName, countryISO2, countryName, isHeadquarter, swiftCode, null);
+
+    }
+
 }

@@ -10,4 +10,6 @@ public interface SwiftCodeRepository extends JpaRepository<SwiftCode, String> {
     
     List<SwiftCode> findByIsHeadquarter(Boolean isHeadquarter);
 
+    List<SwiftCode> findBySwiftCodeStartingWithAndIsHeadquarterFalse(String keyword);
+
 }
