@@ -8,10 +8,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +48,12 @@ public class SwiftCodeServiceTest {
 
     @Mock
     private SwiftCodeMapper swiftCodeMapper;
+
+    @Mock
+    private CountryService countryService;
+
+    @Mock
+    private BankService bankService;
 
     @InjectMocks
     private SwiftCodeService swiftCodeService;
@@ -118,6 +126,8 @@ public class SwiftCodeServiceTest {
 
         when(excelUploadService.isValidExcelFile(mockFile)).thenReturn(true);
         when(excelUploadService.mapExcelToDatabaseEntities(any(InputStream.class))).thenReturn(List.of(headquarter,branch));
+        when(countryService.getAllCountriesAsMap()).thenReturn(new HashMap<>());
+
 
         // When
 
@@ -126,7 +136,7 @@ public class SwiftCodeServiceTest {
         // Then
 
         verify(excelUploadService).mapExcelToDatabaseEntities(any(InputStream.class));
-        verify(swiftCodeRepository).saveAll(anyList());
+        verify(swiftCodeRepository, times(2)).saveAll(anyList());
         assertEquals(headquarter, branch.getHeadquarter());
 
     }

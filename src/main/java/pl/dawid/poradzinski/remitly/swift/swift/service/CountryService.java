@@ -1,6 +1,7 @@
 package pl.dawid.poradzinski.remitly.swift.swift.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,6 +37,15 @@ public class CountryService {
     public void saveCountires(List<Country> countires) {
 
         countryRepository.saveAll(countires);
+
+    }
+
+    public Map<String, String> getAllCountriesAsMap() {
+        
+        // Return as Map. We don't need to sort it
+
+        return countryRepository.findAll().stream()
+            .collect(Collectors.toMap(Country::getISO2, Country::getName));
 
     }
 

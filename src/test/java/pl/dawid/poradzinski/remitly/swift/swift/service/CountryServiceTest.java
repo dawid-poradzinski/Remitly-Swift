@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -193,6 +194,48 @@ public class CountryServiceTest {
         assertEquals(2, result.size());
         assertEquals("US", result.get(0).countryISO2());
         assertEquals("PL", result.get(1).countryISO2());
+    }
+
+    @Test
+    void shouldReturnMapIfExist() {
+
+        // Given
+
+        Country testCountry1 = new Country();
+
+        testCountry1.setISO2("US");
+        testCountry1.setName("USA");
+
+        when(countryRepository.findAll()).thenReturn(List.of(testCountry,testCountry1));
+
+        // When
+
+        Map<String,String> countriesMap = countryService.getAllCountriesAsMap();
+
+        // Then
+
+        verify(countryRepository).findAll();
+        assertEquals(2, countriesMap.size());
+        assertEquals(testCountry1.getName(), countriesMap.get(testCountry1.getISO2()));
+        assertEquals(testCountry.getName(), countriesMap.get(testCountry.getISO2()));
+
+    }
+
+    @Test
+    void shouldReturnEmptyMapIfDoesntExist() {
+
+        // Given
+        when(countryRepository.findAll()).thenReturn(List.of());
+
+        // When
+
+        Map<String,String> countriesMap = countryService.getAllCountriesAsMap();
+
+        // Then
+
+        verify(countryRepository).findAll();
+        assertEquals(0, countriesMap.size());
+
     }
 
 }
