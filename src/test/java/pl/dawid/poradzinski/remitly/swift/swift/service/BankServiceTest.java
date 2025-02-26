@@ -74,9 +74,10 @@ public class BankServiceTest {
         assertNotNull(result);
         assertEquals(2, result.size());
 
-        for (Bank bank : banks) {
-            assertTrue(result.contains(bank.getName()));
-        }
+        banks.stream().forEach(
+            bank -> assertTrue(result.contains(bank.getName()))
+        );
+
 
         verify(bankRepository).findAll();
 

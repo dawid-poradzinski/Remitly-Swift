@@ -55,7 +55,8 @@ public class SwiftCodeController {
     @GetMapping("/country/{countryISO2Code}")
     public ResponseEntity<CountryDTO> returnAllSwiftCodesForSpecificCountry(@PathVariable String countryISO2Code) {
 
-        return countryService.getAllDataByISO2(countryISO2Code).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());    
+        return countryService.getAllDataByISO2(countryISO2Code).map(ResponseEntity::ok).
+            orElseGet(() -> ResponseEntity.notFound().build());    
 
     }
 

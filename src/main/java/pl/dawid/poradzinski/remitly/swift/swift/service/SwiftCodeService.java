@@ -34,81 +34,64 @@ public class SwiftCodeService {
     private final CountryService countryService;
     private final BankService bankService;
 
+    /**
+     * Saves list of Swift codes to database.
+     *  
+     * @param swiftCodes list of Swift codes
+     */
     public void saveSwiftCodes(List<SwiftCode> swiftCodes) {
 
         swiftCodeRepository.saveAll(swiftCodes);
 
     }
 
+    /**
+     * Maps excel data to Swift code entities, validate and save them to database
+     * 
+     * @param file from with data will be retrived
+     */
     public void saveExcelToDatabase(MultipartFile file) {
 
         if(excelUploadService.isValidExcelFile(file)) {
 
             try {
                
-                // Get swiftCodes from excel
-
                 List<SwiftCode> excelSwiftCodes = excelUploadService.mapExcelToDatabaseEntities(file.getInputStream());
 
                 List<SwiftCode> newSwiftCodes = new ArrayList<>();
 
-                // We need to check if iso2 and name combination isn't incorrect
-
-                // Already existing countires map
-
                 Map<String,String> existingCountries = countryService.getAllCountriesAsMap();
                 List<Country> newCountires = new ArrayList<>();
 
-                // List of Banks names to check and save to db
 
                 List<Bank> banks = new ArrayList<>();
-                
+
                 for(SwiftCode swiftCode : excelSwiftCodes) {
 
                     Country country = swiftCode.getCountry();
 
-                    // Check if ISO2 is already in db
-
                     if(existingCountries.containsKey(country.getISO2())) {
 
-                        // If name is different, then skip swiftCode: wrong country
-
                         if(!existingCountries.get(country.getISO2()).equals(country.getName())) {
-
-                            //TODO save info about swiftCode, that was skipped
 
                             continue;
 
                         }
 
-                        // If name is already in db and iso2 not, then skip swiftCode: wrong country
 
                     } else if (existingCountries.containsValue(country.getName())) {
-
-                        //TODO save info about swiftCode, that was skipped
 
                         continue;
 
                     } else {
 
-                        // If iso2 and name doesn't exist in db, then save it
-
-                        // Add country to existing countries map
 
                         existingCountries.put(country.getISO2(), country.getName());
-
-                        // add country to list, that will be saved at the end
-
                         newCountires.add(country);
 
                     }
-
-                    // Give checking and saving bank to hibernate
                     
                     banks.add(swiftCode.getBank());
-
-                    // Add swiftCode to list
-
                     newSwiftCodes.add(swiftCode);
 
                 }
@@ -140,17 +123,25 @@ public class SwiftCodeService {
 
     }
 
+    /**
+     * Retrieves Swift code by its code. Map to headquarter or branch DTO.
+     * @param swift code, to look in database
+     * @return {@code Optional<SwiftCodeDTO>} if found, or else empty
+     */
     public Optional<SwiftCodeDTO> getBySwiftCode(String swift) {
 
         return swiftCodeRepository.findById(swift).map( swiftCode -> swiftCodeMapper.entityAsMainToDTO(swiftCode, swiftCode.getIsHeadquarter()));
 
     }
 
+    /**
+     * Deletes Swift code and its connections from database if found
+     * 
+     * @param swift code, to look in database
+     */
     public void deleteBySwiftCode(String swift) {
 
         SwiftCode swiftCode = swiftCodeRepository.findById(swift).orElseThrow(SwiftCodeDoesntExistException::new);
-
-        // Delete relation for branches with headquarter
 
         if(swiftCode.getBranches() != null) {
 
@@ -158,8 +149,6 @@ public class SwiftCodeService {
 
         }
         
-        // Delete relation with headquarter
-
         swiftCode.setHeadquarter(null);
 
         swiftCodeRepository.delete(swiftCode);
@@ -190,9 +179,22 @@ public class SwiftCodeService {
 
     }
 
+    /**
+     * Validates a SWIFT code for correctness and database compatibility, then adds it to database
+     *  
+     * The validation includes:
+     * Checking if the SWIFT code has the correct length.
+     * Verifying if the isHeadquarter flag correctly matches the SWIFT code format.
+     * Ensuring that the associated country data does not conflict with existing database entries.
+     * 
+     * After validation look up for conections from other swift codes.
+     *  
+     * @param swiftCodeDTO the SWIFT code entity to be validated
+     * @throws SwiftCodeToShortException if the SWIFT code length is not exactly 11 characters
+     * @throws SwiftCodeIsHeadquarterException if the isHeadquarter flag does not match the expected SWIFT code format
+     * @throws CountryConflictException if an existing database entry has a conflicting ISO2 or name
+     */
     public SwiftCode addNewSwiftCode(SwiftCodeDTO swiftCodeDTO) {
-
-        // If SwiftCode already exist in db, then throw exception
 
         if(swiftCodeRepository.existsById(swiftCodeDTO.swiftCode())) {
 
@@ -200,78 +202,105 @@ public class SwiftCodeService {
 
         }
 
-        // Map DTO to entity
-
         SwiftCode swiftCode = swiftCodeMapper.dtoToEntity(swiftCodeDTO);
 
-        // validate swiftCode length and isHeadquarter with endsWith
-
-        validateSwiftCode(swiftCode);
+        validateSingleSwiftCode(swiftCode);
 
         bankService.saveBank(swiftCode.getBank());
         countryService.saveCountry(swiftCode.getCountry());
 
+        return checkForConnectionsAndAddToDatabase(swiftCode);
+
+    }
+
+    private void validateSingleSwiftCode(SwiftCode swiftCode) {
+
+        checkForSwiftCodeLength(swiftCode.getSwiftCode());
+        checkForIsHeadquarterAndEndingWithXXX(swiftCode.getSwiftCode(), swiftCode.getIsHeadquarter());
+        validateSingleCountryISO2AndNameCombinationIsCorrectWithDB(swiftCode.getCountry().getISO2(), swiftCode.getCountry().getName());
+
+    }
+
+    @Transactional
+    private SwiftCode checkForConnectionsAndAddToDatabase(SwiftCode swiftCode) {
+
         if(swiftCode.getIsHeadquarter()) {
 
             swiftCodeRepository.save(swiftCode);
-            // Look for branches and change their headquarter
 
             List<SwiftCode> branches = swiftCodeRepository.findBySwiftCodeStartingWithAndIsHeadquarterFalse(swiftCode.getSwiftCode().substring(0,swiftCode.getSwiftCode().length()-3));
 
-            branches.forEach(branch -> branch.setHeadquarter(swiftCode));
+            branches.forEach(branch -> {
 
+                branch.setHeadquarter(swiftCode);
 
-            swiftCodeRepository.saveAll(branches);
-
-            return swiftCode;
-
+            });
         } else {
-
-            // Look for headquarter and add connection if exist
 
             swiftCodeRepository.findById(
 
-                swiftCode.getSwiftCode().substring(
-                    0,
-                    swiftCode.getSwiftCode().length()-3
-                )
-                +
-                "XXX"
+                swiftCode.getSwiftCode().substring(0,swiftCode.getSwiftCode().length()-3) + "XXX"
 
             ).ifPresent(swiftCode::setHeadquarter);
 
-            return swiftCodeRepository.save(swiftCode);
+            swiftCodeRepository.save(swiftCode);
 
         }
-        
+
+        return swiftCode;
+
     }
 
-    public void validateSwiftCode(SwiftCode swiftCode) {
+    private void checkForSwiftCodeLength(String swiftCode) {
 
-        // If SwiftCode length isn't 11 throw exception
 
-        if(swiftCode.getSwiftCode().length() != 11) {
+        if(swiftCode.length() != 11) {
 
-            throw new SwiftCodeToShortException("SwiftCode length should be 11 but is: " + swiftCode.getSwiftCode().length());
-
-        }
-
-        // If SwiftCode isHeadquarter and endsWith isn't equal, then throw exception
-
-        if(swiftCode.getIsHeadquarter() != swiftCode.getSwiftCode().endsWith("XXX")) {
-
-            throw new SwiftCodeIsHeadquarterException("isHeadquarter = " + swiftCode.getIsHeadquarter() + " but swiftCode is: " + swiftCode.getSwiftCode());
+            throw new SwiftCodeToShortException("SwiftCode length should be 11 but is: " + swiftCode.length());
 
         }
 
-        countryService.getByISO2OrName(swiftCode.getCountry().getISO2(), swiftCode.getCountry().getName())
-            .filter(existingCountry -> 
-                swiftCode.getCountry().getISO2().equals(existingCountry.getISO2()) ||
-                swiftCode.getCountry().getName().equals(existingCountry.getName()))
+    }
+
+    private void checkForIsHeadquarterAndEndingWithXXX(String swiftCode, Boolean isHeadquarter) {
+
+        if(isHeadquarter != swiftCode.endsWith("XXX")) {
+
+            throw new SwiftCodeIsHeadquarterException("isHeadquarter = " + isHeadquarter + " but swiftCode is: " + swiftCode);
+
+        }
+
+    }
+
+    /**
+     * Validates the combination of country ISO2 code and name against the database.
+     * 
+     * If a different combination of the ISO2 code or country name exists in the database, an exception is thrown.
+     * If no matching entry is found, a new country entity is saved.
+     * 
+     * @param iso2 the ISO2 country code to validate
+     * @param countryName the country name to validate
+     * @throws CountryConflictException if an existing entry in the database has a conflicting ISO2 or name
+     */
+    private void validateSingleCountryISO2AndNameCombinationIsCorrectWithDB(String iso2, String countryName) {
+
+        countryService.getByISO2OrNameLimit1(iso2, countryName)
+            .filter(existingCountry ->
+
+                !iso2.equals(existingCountry.getISO2()) ||
+                !countryName.equals(existingCountry.getName())
+
+            )
             .ifPresent(existingCountry -> {
-                throw new CountryConflictException("ISO2 and Name in swiftCode: " + swiftCode.getCountry().getISO2() + " " + swiftCode.getCountry().getName() +
-                                                ". ISO2 and Name in db: " + existingCountry.getISO2() + " " + existingCountry.getName());
-        });
+
+                throw new CountryConflictException(
+                    "Your combination: " + iso2 + " - " + countryName + " isn't the same as in db: "
+                    + existingCountry.getISO2() + " - " + existingCountry.getName()
+                );
+
+            }
+            
+        );
 
     }
 

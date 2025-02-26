@@ -28,11 +28,9 @@ public class ExcelUploadService {
      * - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet (for .xlsx files)
      * - application/vnd.ms-excel.sheet.macroEnabled.12 (for macro-enabled .xlsm files)
      * 
-     * 
      * @param file The file to be valitadated.
      * @return {@code true} if the file is a valid Excel file, othwerwise {@code false}.
      */
-
     public boolean isValidExcelFile(MultipartFile file) {
 
         String mimeType = file.getContentType();
@@ -50,9 +48,14 @@ public class ExcelUploadService {
         return false;
     }
 
+    /**
+     * Reads and maps data from an Excel file to SwiftCode entities.
+     * 
+     * @param input InputStream of the Excel file containing SwiftCode data.
+     * @return {@code List<SwiftCode>} containing the mapped entities.
+     * @throws IOException if the Excel data is invalid or cannot be processed
+     */
     public List<SwiftCode> mapExcelToDatabaseEntities(InputStream input) {
-
-        // List of new swiftCodes
 
         List<SwiftCode> swiftCodes = new ArrayList<>();
 

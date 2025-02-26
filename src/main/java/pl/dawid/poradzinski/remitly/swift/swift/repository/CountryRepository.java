@@ -8,6 +8,6 @@ import pl.dawid.poradzinski.remitly.swift.swift.sql.Country;
 
 public interface CountryRepository extends JpaRepository<Country, String> {
     
-    Optional<Country> findByISO2OrName(String ISO2, String name);
+    Optional<Country> findFirstByISO2OrName(String ISO2, String name);
 
 }
