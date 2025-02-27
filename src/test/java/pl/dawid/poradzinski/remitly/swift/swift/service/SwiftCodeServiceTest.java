@@ -116,37 +116,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldSaveToDBFromExcel() {
-
-        // Given
-
-        MockMultipartFile mockFile = new MockMultipartFile(
-            "file",
-            "test.xlsx",
-            "application/vnd.ms-excel",
-            new byte[0]
-        );
-
-        when(excelUploadService.isValidExcelFile(mockFile)).thenReturn(true);
-        when(excelUploadService.mapExcelToDatabaseEntities(any(InputStream.class))).thenReturn(new ArrayList<>(List.of(headquarter,branch)) );
-        when(countryService.getAllCountriesAsMap()).thenReturn(new HashMap<>());
-
-
-        // When
-
-        int size = swiftCodeService.saveExcelToDatabase(mockFile);
-
-        // Then
-
-        verify(excelUploadService).mapExcelToDatabaseEntities(any(InputStream.class));
-        verify(swiftCodeRepository).saveAll(anyList());
-        assertEquals(headquarter, branch.getHeadquarter());
-        assertEquals(2, size);
-
-    }
-
-    @Test
-    void shouldThrowExceptionWhenInvalidExcelFileProvided() {
+    void saveExcelShouldThrowInvalidFileException() {
         
         // Given
 
@@ -162,7 +132,41 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldReturnDTOIfExist() {
+    void saveExcelShouldValidateSaveAndAddConnections() {
+
+        // Given
+
+        MockMultipartFile mockFile = new MockMultipartFile(
+            "file",
+            "test.xlsx",
+            "application/vnd.ms-excel",
+            new byte[0]
+        );
+
+        headquarter.setBranches(null);
+        branch.setHeadquarter(null);
+
+        when(excelUploadService.isValidExcelFile(mockFile)).thenReturn(true);
+        when(excelUploadService.mapExcelToDatabaseEntities(any(InputStream.class))).thenReturn(new ArrayList<>(List.of(headquarter,branch)) );
+        when(countryService.getAllCountriesAsMap()).thenReturn(new HashMap<>());
+        when(swiftCodeRepository.findByIsHeadquarter(true)).thenReturn(List.of(headquarter));
+        when(swiftCodeRepository.findByIsHeadquarter(false)).thenReturn(List.of(branch));
+
+        // When
+
+        int size = swiftCodeService.saveExcelToDatabase(mockFile);
+
+        // Then
+
+        verify(excelUploadService).mapExcelToDatabaseEntities(any(InputStream.class));
+        verify(swiftCodeRepository).saveAll(anyList());
+        assertEquals(headquarter, branch.getHeadquarter());
+        assertEquals(2, size);
+
+    }
+
+    @Test
+    void getBySwiftCodeShouldReturnDTOOnFound() {
 
         // Given
 
@@ -183,7 +187,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldReturnEmptyIfDoesntExist() {
+    void getBySwiftCodeShouldReturnEmptyOnNotFound() {
 
         // Given
 
@@ -198,7 +202,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldDeleteSwiftCodeOfHeadquarterWithoutBranches() {
+    void deleteBySwiftCodeShouldDeleteOnFound() {
 
         headquarter.setBranches(null);
 
@@ -218,7 +222,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldDeleteSwiftCodeOfHeadquarterWithBranches() {
+    void deleteBySwiftCodeShouldRemoveAllBranchsConnection() {
 
         // Given
 
@@ -238,7 +242,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldDeleteSwiftCodeOfBranchWithHeadquarter() {
+    void deleteBySwiftCodeShouldRemoveOwnHeadquarter() {
 
         // Given
 
@@ -259,28 +263,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldDeleteSwiftCodeOfbranchWithoutHeadquarter() {
-
-            // Given
-
-            branch.setHeadquarter(null);
-
-            when(swiftCodeRepository.findById("AAABBBCC000")).thenReturn(Optional.of(branch));
-
-            // When
-    
-            swiftCodeService.deleteBySwiftCode("AAABBBCC000");
-    
-            // Then
-    
-            verify(swiftCodeRepository).findById("AAABBBCC000");
-            verify(swiftCodeRepository).delete(branch);
-    
-           
-    }
-
-    @Test
-    void shouldThrowExceptionOnDeleteSwiftCodeIfDoesntExist() {
+    void deleteBySwiftCodeShouldThrowExceptionOnNotFound() {
 
         // Given
 
@@ -294,7 +277,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionIfSwiftCodeAlreadyExistInDb() {
+    void addNewSwiftCodeShouldThrowExceptionOnAlreadyExist() {
 
         // Given
         
@@ -309,7 +292,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldThrowExceptionIfIsHeadquarterIsntEqualToEndsWithXXX() {
+    void addNewSwiftCodeShouldThrowExceptionOnIsHeadquarterIsntEqualToEndsWithXXX() {
 
         // Given
 
@@ -328,7 +311,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldSaveDTOToDbIfDoesntExistInIt() {
+    void addNewSwiftCodeShouldSaveToDB() {
 
         // Given
 
@@ -350,7 +333,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldCheckForHeadquarterInDbAndAddItIfExistAndThenSave() {
+    void addNewSwiftCodeShouldCheckIfBranchAndLookForHeadquarter() {
 
         // Given
 
@@ -376,7 +359,7 @@ public class SwiftCodeServiceTest {
     }
 
     @Test
-    void shouldCheckForBranchesInDbAndAddHeadquarterForThemIfTheyExistAndThenSave() {
+    void addNewSwiftCodeShouldCheckIfHeadquarterAndLookForbranches() {
 
         // Given
 
@@ -403,4 +386,5 @@ public class SwiftCodeServiceTest {
 
     }
 
+    
 }

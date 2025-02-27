@@ -1,29 +1,28 @@
 version: '3.8'
 
 services:
-  # Baza danych MySQL
+
   mysql-db:
     image: mysql:8.0
     environment:
       - MYSQL_ROOT_PASSWORD=rootpassword
       - MYSQL_DATABASE=remitly
     ports:
-      - "3306:3306"  # Mapujemy port MySQL (domyślnie 3306) na hosta
+      - "3306:3306"
     volumes:
-      - mysql-data:/var/lib/mysql  # Dane są przechowywane w wolumenie
+      - mysql-data:/var/lib/mysql  
 
-  # Aplikacja Spring Boot
-  springboot-test:
+  springboot-app-dp:
     build: .
     ports:
-      - "8080:8080"  # Mapujemy port 8080 kontenera na port 8080 hosta
+      - "8080:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/remitly
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=rootpassword
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
     depends_on:
-      - mysql-db  # Aplikacja Spring Boot zależy od bazy danych
+      - mysql-db
 
 volumes:
-  mysql-data:  # Wolumen do przechowywania danych MySQL
+  mysql-data:

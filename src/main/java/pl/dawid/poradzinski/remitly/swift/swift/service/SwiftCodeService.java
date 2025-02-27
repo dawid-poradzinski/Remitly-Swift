@@ -1,9 +1,11 @@
 package pl.dawid.poradzinski.remitly.swift.swift.service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -46,9 +48,9 @@ public class SwiftCodeService {
     }
 
     /**
-     * Maps excel data to Swift code entities, validate and save them to database
+     * Maps Excel data to Swift code entities, validate and save them to database
      * 
-     * @param file from with data will be retrived
+     * @param file from which data will be retrieved
      * @return number of saved entities
      */
     public int saveExcelToDatabase(MultipartFile file) {
@@ -63,13 +65,14 @@ public class SwiftCodeService {
 
                 saveSwiftCodes(excelSwiftCodes);
 
-                addConnectionBetweenBranchsAndHeadquarterInDatabase();
+                addConnectionBetweenBranchesAndHeadquarterInDatabase();
 
                 return excelSwiftCodes.size();
 
             } catch (Exception e) {
 
-                
+                throw new InternalError(e.getMessage());
+
             }
 
         }
@@ -79,19 +82,23 @@ public class SwiftCodeService {
 
         }
 
-        return 0;
 
     }
-
 
     private List<SwiftCode> validateSwiftCodeList(List<SwiftCode> swiftCodes) {
 
         Map<String,String> existingCountries = countryService.getAllCountriesAsMap();
         List<Country> newCountries = new ArrayList<>();
 
-        List<Bank> banks = new ArrayList<>();
+        Set<Bank> banks = new HashSet<>();
 
         swiftCodes.removeIf(swiftCode -> {
+
+            if(!banks.contains(swiftCode.getBank())) {
+
+                banks.add(swiftCode.getBank());
+
+            }
 
             Country country = swiftCode.getCountry();
             String iso2 = country.getISO2();
@@ -113,19 +120,22 @@ public class SwiftCodeService {
             newCountries.add(country);
 
             return false;
+
         });
 
         countryService.saveCountires(newCountries);
-        bankService.saveBanks(banks);
+        bankService.saveBanks(new ArrayList<>(banks));
 
         return swiftCodes;
+
     }
 
 
     /**
-     * Retrieves Swift code by its code. Map to headquarter or branch DTO.
-     * @param swift code, to look in database
-     * @return {@code Optional<SwiftCodeDTO>} if found, or else empty
+     * Retrieves a Swift code by its code and maps it to a headquarter or branch DTO.
+     * 
+     * @param swift the Swift code to look up in the database
+     * @return {@code Optional<SwiftCodeDTO>} if found, otherwise empty
      */
     public Optional<SwiftCodeDTO> getBySwiftCode(String swift) {
 
@@ -134,10 +144,10 @@ public class SwiftCodeService {
     }
 
     /**
-     * Deletes Swift code and its connections from database if found
+     * Deletes a Swift code and its connections from the database if found.
      * 
-     * @param swift code, to look in database
-     * @throws SwiftCodeDoesntExistException if not found
+     * @param swift the Swift code to look up in the database
+     * @throws SwiftCodeDoesntExistException if the Swift code is not found
      */
     public void deleteBySwiftCode(String swift) {
 
@@ -156,7 +166,7 @@ public class SwiftCodeService {
     }
 
     @Transactional
-    private void addConnectionBetweenBranchsAndHeadquarterInDatabase() {
+    private void addConnectionBetweenBranchesAndHeadquarterInDatabase() {
 
         List<SwiftCode> headquarters = swiftCodeRepository.findByIsHeadquarter(true);
         List<SwiftCode> branches = swiftCodeRepository.findByIsHeadquarter(false);
@@ -215,7 +225,6 @@ public class SwiftCodeService {
 
     private void validateSingleSwiftCode(SwiftCode swiftCode) {
 
-        checkForSwiftCodeLength(swiftCode.getSwiftCode());
         checkForIsHeadquarterAndEndingWithXXX(swiftCode.getSwiftCode(), swiftCode.getIsHeadquarter());
         validateSingleCountryISO2AndNameCombinationIsCorrectWithDB(swiftCode.getCountry().getISO2(), swiftCode.getCountry().getName());
 
@@ -260,17 +269,6 @@ public class SwiftCodeService {
         }
 
         return swiftCode;
-
-    }
-
-    private void checkForSwiftCodeLength(String swiftCode) {
-
-
-        if(swiftCode.length() != 11) {
-
-            throw new SwiftCodeToShortException("SwiftCode length should be 11 but is: " + swiftCode.length());
-
-        }
 
     }
 

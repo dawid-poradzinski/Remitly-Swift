@@ -1,12 +1,8 @@
 package pl.dawid.poradzinski.remitly.swift.swift.controller;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -54,7 +50,7 @@ public class SwiftCodeController {
             
             int size = swiftCodeService.saveExcelToDatabase(file);
 
-            return ResponseEntity.ok(Map.of("message","Saved " + size + "entities"));
+            return ResponseEntity.ok(Map.of("message","Saved or updated " + size + " entities"));
 
         } catch (InvalidFileFormatException e) {
             
