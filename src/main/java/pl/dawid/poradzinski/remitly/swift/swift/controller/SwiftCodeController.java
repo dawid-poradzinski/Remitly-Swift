@@ -1,10 +1,15 @@
 package pl.dawid.poradzinski.remitly.swift.swift.controller;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import pl.dawid.poradzinski.remitly.swift.swift.dto.CountryDTO;
 import pl.dawid.poradzinski.remitly.swift.swift.dto.SwiftCodeDTO;
@@ -31,27 +37,44 @@ public class SwiftCodeController {
     private final SwiftCodeService swiftCodeService;
     private final CountryService countryService;
 
+    /**
+     * Handles the upload of an Excel file containing SWIFT codes and saves the data to the database.
+     * 
+     * @param file the uploaded Excel file containing SWIFT codes
+     * @return {@code ResponseEntity<Map<String, String>>} containing a success message 
+     * with the number of records added, or an error message in case of failure.
+     *         
+     * @throws InvalidFileFormatException if the uploaded file is not a valid Excel file
+     * @throws Exception if an unexpected error occurs during processing
+     */
     @PostMapping("/upload")
-    public ResponseEntity<String> uploadSwiftCodesFromExcel(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<Map<String,String>> uploadSwiftCodesFromExcel(@RequestParam("file") MultipartFile file) {
 
         try {
             
-            swiftCodeService.saveExcelToDatabase(file);
+            int size = swiftCodeService.saveExcelToDatabase(file);
 
-            return ResponseEntity.status(HttpStatus.OK).body("SwiftCodes added succesfully");
+            return ResponseEntity.ok(Map.of("message","Saved " + size + "entities"));
 
         } catch (InvalidFileFormatException e) {
             
-            return ResponseEntity.badRequest().body("Invalid file format: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid file format: " + e.getMessage()));
 
         } catch (Exception e) { 
 
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occured while processing the file: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "An error occured while processing the file: " + e.getMessage()));
 
         }
 
     }
 
+     /**
+     * Retrieves all SWIFT codes associated with a specific country.
+     * 
+     * @param countryISO2Code the two-letter ISO code of the country
+     * @return {@code ResponseEntity<CountryDTO>} containing country details with SWIFT codes,
+     * or {@code ResponseEntity.notFound()} if no data is found.
+     */
     @GetMapping("/country/{countryISO2Code}")
     public ResponseEntity<CountryDTO> returnAllSwiftCodesForSpecificCountry(@PathVariable String countryISO2Code) {
 
@@ -60,6 +83,13 @@ public class SwiftCodeController {
 
     }
 
+    /**
+     * Retrieves details of a specific SWIFT code.
+     * 
+     * @param swiftCode the SWIFT code to look up
+     * @return {@code ResponseEntity<SwiftCodeDTO>} containing SWIFT code details,
+     * or {@code ResponseEntity.notFound()} if no match is found.
+     */
     @GetMapping("/{swiftCode}")
     public ResponseEntity<SwiftCodeDTO> returnSwiftCodeDTOForSpecificSwift(@PathVariable String swiftCode) {
 
@@ -69,6 +99,13 @@ public class SwiftCodeController {
 
     }
 
+    /**
+     * Deletes a specific SWIFT code from the database.
+     * 
+     * @param swiftCode the SWIFT code to delete
+     * @return {@code ResponseEntity<Map<String,String>>} with a success message if deleted,
+     * or {@code HttpStatus.NOT_FOUND} if the SWIFT code does not exist.
+     */
     @DeleteMapping("/{swiftCode}")
     public ResponseEntity<Map<String,String>> deleteSwiftCodeForSpecificSwift(@PathVariable String swiftCode) {
 
@@ -85,8 +122,15 @@ public class SwiftCodeController {
 
     }
 
+    /**
+     * Adds a new SWIFT code to the database.
+     * 
+     * @param swiftCodeDTO the SWIFT code data to be added
+     * @return {@code ResponseEntity<Map<String,String>>} with a success message containing the SWIFT code ID,
+     * or {@code HttpStatus.BAD_REQUEST} if an error occurs.
+     */
     @PostMapping()
-    public ResponseEntity<Map<String,String>> addNewSwiftCode(@Validated @RequestBody SwiftCodeDTO swiftCodeDTO) {
+    public ResponseEntity<Map<String,String>> addNewSwiftCode(@Valid @RequestBody SwiftCodeDTO swiftCodeDTO) {
 
         try {
             
@@ -100,8 +144,17 @@ public class SwiftCodeController {
             
         }
 
-        
+    }
 
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
+
+        StringBuilder builder = new StringBuilder();
+        ex.getBindingResult().getFieldErrors().forEach(error -> 
+            builder.append(error.getDefaultMessage() + ". ")
+        );
+        return ResponseEntity.badRequest().body(Map.of("message:", builder.toString()));
     }
 
 }

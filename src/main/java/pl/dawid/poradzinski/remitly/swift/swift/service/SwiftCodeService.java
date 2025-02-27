@@ -49,8 +49,9 @@ public class SwiftCodeService {
      * Maps excel data to Swift code entities, validate and save them to database
      * 
      * @param file from with data will be retrived
+     * @return number of saved entities
      */
-    public void saveExcelToDatabase(MultipartFile file) {
+    public int saveExcelToDatabase(MultipartFile file) {
 
         if(excelUploadService.isValidExcelFile(file)) {
 
@@ -58,56 +59,13 @@ public class SwiftCodeService {
                
                 List<SwiftCode> excelSwiftCodes = excelUploadService.mapExcelToDatabaseEntities(file.getInputStream());
 
-                List<SwiftCode> newSwiftCodes = new ArrayList<>();
+                excelSwiftCodes = validateSwiftCodeList(excelSwiftCodes);
 
-                Map<String,String> existingCountries = countryService.getAllCountriesAsMap();
-                List<Country> newCountires = new ArrayList<>();
+                saveSwiftCodes(excelSwiftCodes);
 
+                addConnectionBetweenBranchsAndHeadquarterInDatabase();
 
-                List<Bank> banks = new ArrayList<>();
-
-                for(SwiftCode swiftCode : excelSwiftCodes) {
-
-                    Country country = swiftCode.getCountry();
-
-                    if(existingCountries.containsKey(country.getISO2())) {
-
-                        if(!existingCountries.get(country.getISO2()).equals(country.getName())) {
-
-                            continue;
-
-                        }
-
-
-                    } else if (existingCountries.containsValue(country.getName())) {
-
-                        continue;
-
-                    } else {
-
-
-                        existingCountries.put(country.getISO2(), country.getName());
-                        newCountires.add(country);
-
-                    }
-                    
-                    banks.add(swiftCode.getBank());
-                    newSwiftCodes.add(swiftCode);
-
-                }
-
-                // Save new counties and banks to db
-
-                countryService.saveCountires(newCountires);
-                bankService.saveBanks(banks);
-                
-                // Give checking and saving swiftCodes to hibernate
-
-                saveSwiftCodes(newSwiftCodes);
-
-                // Add connections between branches and headquarters of all swiftCodes in db
-
-                addConnectionBetweenBranchAndHeadquarter();
+                return excelSwiftCodes.size();
 
             } catch (Exception e) {
 
@@ -121,7 +79,48 @@ public class SwiftCodeService {
 
         }
 
+        return 0;
+
     }
+
+
+    private List<SwiftCode> validateSwiftCodeList(List<SwiftCode> swiftCodes) {
+
+        Map<String,String> existingCountries = countryService.getAllCountriesAsMap();
+        List<Country> newCountries = new ArrayList<>();
+
+        List<Bank> banks = new ArrayList<>();
+
+        swiftCodes.removeIf(swiftCode -> {
+
+            Country country = swiftCode.getCountry();
+            String iso2 = country.getISO2();
+            String name = country.getName();
+
+            if(existingCountries.containsKey(iso2)) {
+
+                return !existingCountries.get(iso2).equals(name);
+
+            }
+
+            if(existingCountries.containsValue(name)) {
+
+                return true;
+
+            }
+
+            existingCountries.put(iso2, name);
+            newCountries.add(country);
+
+            return false;
+        });
+
+        countryService.saveCountires(newCountries);
+        bankService.saveBanks(banks);
+
+        return swiftCodes;
+    }
+
 
     /**
      * Retrieves Swift code by its code. Map to headquarter or branch DTO.
@@ -138,6 +137,7 @@ public class SwiftCodeService {
      * Deletes Swift code and its connections from database if found
      * 
      * @param swift code, to look in database
+     * @throws SwiftCodeDoesntExistException if not found
      */
     public void deleteBySwiftCode(String swift) {
 
@@ -156,7 +156,7 @@ public class SwiftCodeService {
     }
 
     @Transactional
-    public void addConnectionBetweenBranchAndHeadquarter() {
+    private void addConnectionBetweenBranchsAndHeadquarterInDatabase() {
 
         List<SwiftCode> headquarters = swiftCodeRepository.findByIsHeadquarter(true);
         List<SwiftCode> branches = swiftCodeRepository.findByIsHeadquarter(false);
@@ -221,6 +221,18 @@ public class SwiftCodeService {
 
     }
 
+    /**
+     * Checks for existing connections between headquarters and branches and saves the given SwiftCode entity to the database.
+     * 
+     * If the provided SwiftCode is marked as a headquarter (isHeadquarter = true), it is first saved to the database.
+     * Then, all branches starting with the same prefix are retrieved and assigned to the headquarter.
+     * 
+     * If the provided SwiftCode is not a headquarter (isHeadquarter = false), the method searches for an existing headquarter 
+     * based on the first 8 characters of the SwiftCode ending with XXX and assigns the headquarter to the SwiftCode if found.
+     * 
+     * @param swiftCode the SwiftCode entity to be checked and persisted
+     * @return the saved SwiftCode entity with updated connections
+     */
     @Transactional
     private SwiftCode checkForConnectionsAndAddToDatabase(SwiftCode swiftCode) {
 

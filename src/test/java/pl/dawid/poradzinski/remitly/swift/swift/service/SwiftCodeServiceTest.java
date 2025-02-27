@@ -13,6 +13,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -127,19 +128,20 @@ public class SwiftCodeServiceTest {
         );
 
         when(excelUploadService.isValidExcelFile(mockFile)).thenReturn(true);
-        when(excelUploadService.mapExcelToDatabaseEntities(any(InputStream.class))).thenReturn(List.of(headquarter,branch));
+        when(excelUploadService.mapExcelToDatabaseEntities(any(InputStream.class))).thenReturn(new ArrayList<>(List.of(headquarter,branch)) );
         when(countryService.getAllCountriesAsMap()).thenReturn(new HashMap<>());
 
 
         // When
 
-        swiftCodeService.saveExcelToDatabase(mockFile);
+        int size = swiftCodeService.saveExcelToDatabase(mockFile);
 
         // Then
 
         verify(excelUploadService).mapExcelToDatabaseEntities(any(InputStream.class));
         verify(swiftCodeRepository).saveAll(anyList());
         assertEquals(headquarter, branch.getHeadquarter());
+        assertEquals(2, size);
 
     }
 
@@ -290,36 +292,6 @@ public class SwiftCodeServiceTest {
 
         verify(swiftCodeRepository, never()).delete(any(SwiftCode.class));
     }
-
-    @Test
-    void shouldAddConnectionBetweenHeadquarterAndBranchifSwiftCodeMatch() {
-
-        branch.setHeadquarter(null);
-        headquarter.setBranches(null);
-
-        when(swiftCodeRepository.findByIsHeadquarter(true)).thenReturn(List.of(headquarter));
-        when(swiftCodeRepository.findByIsHeadquarter(false)).thenReturn(List.of(branch));
-
-        swiftCodeService.addConnectionBetweenBranchAndHeadquarter();
-
-        assertEquals(headquarter, branch.getHeadquarter());
-
-    }
-
-    @Test
-    void shouldNotAddConnectioNBetweenHeadquarterAndBranchIfSwiftCodeDoesntMatch() {
-
-        branch.setHeadquarter(null);
-        branch.setSwiftCode("BBBAAACC000");
-
-        when(swiftCodeRepository.findByIsHeadquarter(true)).thenReturn(List.of(headquarter));
-        when(swiftCodeRepository.findByIsHeadquarter(false)).thenReturn(List.of(branch));
-
-        swiftCodeService.addConnectionBetweenBranchAndHeadquarter();
-
-        assertEquals(null, branch.getHeadquarter());
-    }
-
 
     @Test
     void shouldThrowExceptionIfSwiftCodeAlreadyExistInDb() {
