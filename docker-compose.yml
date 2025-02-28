@@ -1,0 +1,30 @@
+services:
+
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=qwertyuiop
+      - MYSQL_DATABASE=remitlyGO
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql  
+
+  go-app:
+    build: .
+    container_name: go-app-dp
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_HOST=mysql-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=qwertyuiop
+      - DB_NAME=remitlyGO
+    depends_on:
+      - mysql-db
+    command: ["/app/main"]
+
+volumes:
+  mysql-data:

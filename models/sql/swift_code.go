@@ -39,7 +39,7 @@ func (sc *SwiftCode) AddConnectionsToheadquarter(db *gorm.DB) error {
 
 	if sc.IsHeadquarter {
 
-		if err := db.Model(&SwiftCode{}).Where("Code LIKE ? AND parent_swift_code is NULL", sc.Code[:8]+"%").Update("parent_swift_code", sc.Code).Error; err != nil {
+		if err := db.Model(&SwiftCode{}).Where("Code LIKE ? AND parent_swift_code is NULL AND is_headquarter = false", sc.Code[:8]+"%").Update("parent_swift_code", sc.Code).Error; err != nil {
 
 		}
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"net/http"
 	"strings"
 	"swift-remitly-app/models/dto"
 	models "swift-remitly-app/models/sql"
@@ -28,25 +29,26 @@ func GetSwiftCode(c *gin.Context, db *gorm.DB) {
 }
 
 func DeleteSwiftCode(c *gin.Context, db *gorm.DB) {
-
 	swiftCodeParam := c.Param("swiftCode")
-
 	var swiftCode models.SwiftCode
 
-	if err := db.Where("CODE = ?", swiftCodeParam).First(&swiftCode).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(404, gin.H{"message": "SwiftCode not found"})
+	result := db.Where("CODE = ?", swiftCodeParam).First(&swiftCode)
+	if result.Error != nil {
+		if result.Error == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Swift code not found"})
 			return
 		}
-
-		c.JSON(500, gin.H{"message": "Internal server error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Database error"})
 		return
 	}
 
-	swiftCode.RemoveConnections(db)
+	if err := swiftCode.RemoveConnections(db); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to remove connections"})
+		return
+	}
 
 	if err := db.Delete(&swiftCode).Error; err != nil {
-		c.JSON(500, gin.H{"message": "Failed to delete SwiftCode"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to delete swift code"})
 		return
 	}
 
