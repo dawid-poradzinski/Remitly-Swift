@@ -108,7 +108,7 @@ public class SwiftCodeController {
         try {
           
             swiftCodeService.deleteBySwiftCode(swiftCode);
-            return ResponseEntity.ok(Map.of("message", swiftCode + " deleted succesfully"));
+            return ResponseEntity.ok(Map.of("message", swiftCode + " Deleted succesfully"));
             
         } catch (SwiftCodeDoesntExistException e) {
             
@@ -132,7 +132,7 @@ public class SwiftCodeController {
             
             SwiftCode swiftCode = swiftCodeService.addNewSwiftCode(swiftCodeDTO);
 
-            return ResponseEntity.ok(Map.of("message", "crated swiftcode id: " + swiftCode.getSwiftCode()));
+            return ResponseEntity.ok(Map.of("message", "Created swiftcode id: " + swiftCode.getSwiftCode()));
 
         } catch (Exception e) {
 
