@@ -17,6 +17,7 @@ public record SwiftCodeDTO (
     @NotBlank(message = "Bank name cannot be blank")
     String bankName,
     @NotBlank(message = "Country ISO2 cannot be blank")
+    @Size(min = 2, max = 2, message = "Country ISO2 must be exactly 2 characters")
     String countryISO2,
     @NotBlank(message = "Country name cannot be blank")
     String countryName,

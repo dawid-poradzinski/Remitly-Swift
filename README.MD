@@ -67,10 +67,10 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 
 #### POST Endpoints
 - `POST /upload` - Upload SWIFT codes from Excel file
-  - Request: `multipart/form-data` with file parameter
+  - Request: `multipart/form-data` with file parameter. key = "file", value = excel file
   - Response: Success/error message with count of processed records
 
-- `POST /` - Add new SWIFT code
+- `POST` - Add new SWIFT code
   - Request: SwiftCodeDTO JSON
   - Response: Success message with created SWIFT code ID
 
@@ -131,6 +131,8 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 ```bash
 ./mvnw spring-boot:run
 ```
+
+## OR
 
 ### Docker Deployment
 1. Install Docker
