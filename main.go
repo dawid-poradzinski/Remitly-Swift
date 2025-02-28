@@ -34,5 +34,17 @@ func main() {
 		handlers.GetSwiftCode(c, db)
 	})
 
+	router.DELETE("/v1/swift-codes/:swiftCode", func(c *gin.Context) {
+		handlers.DeleteSwiftCode(c, db)
+	})
+
+	router.GET("/v1/swift-codes/country/:countryISO", func(c *gin.Context) {
+		handlers.GetCountry(c, db)
+	})
+
+	router.POST("/v1/swift-codes", func(c *gin.Context) {
+		handlers.CreateSwiftCode(c, db)
+	})
+
 	router.Run("localhost:8080")
 }

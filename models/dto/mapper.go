@@ -4,30 +4,29 @@ import models "swift-remitly-app/models/sql"
 
 func MapToSwiftCodeMainDTO(swiftCode models.SwiftCode) SwiftCodeMainDTO {
 
-	bankName := ""
-	if swiftCode.Bank != nil {
-		bankName = swiftCode.Bank.Name
-	}
-
-	countryISO2 := ""
-	countryName := ""
-	if swiftCode.CountryID != nil {
-		countryISO2 = *swiftCode.CountryID
-		countryName = swiftCode.Country.Name
+	var branchesPtr *[]SwiftCodeNastedDTO
+	if swiftCode.IsHeadquarter {
+		branches := MapToSwiftCodeNastedDTOList(swiftCode.Branches)
+		branchesPtr = &branches
+	} else {
+		branchesPtr = nil
 	}
 
 	return SwiftCodeMainDTO{
 		Address:       swiftCode.Address,
-		BankName:      bankName,
-		CountryISO2:   countryISO2,
-		CountryName:   countryName,
-		IsHeadquarter: swiftCode.IsHeadquarter,
-		SwiftCode:     swiftCode.CODE,
-		Branches:      MapToSwiftCodenastedDTOList(swiftCode.Branches),
+		BankName:      *swiftCode.BankName,
+		CountryISO2:   *swiftCode.CountryID,
+		CountryName:   swiftCode.Country.Name,
+		IsHeadquarter: &swiftCode.IsHeadquarter,
+		SwiftCode:     swiftCode.Code,
+		Branches:      branchesPtr,
 	}
 }
 
-func MapToSwiftCodenastedDTOList(branches []models.SwiftCode) []SwiftCodeNastedDTO {
+func MapToSwiftCodeNastedDTOList(branches []models.SwiftCode) []SwiftCodeNastedDTO {
+	if len(branches) == 0 {
+		return []SwiftCodeNastedDTO{}
+	}
 	var branchDTOs []SwiftCodeNastedDTO
 	for _, branch := range branches {
 		branchDTOs = append(branchDTOs, MapToSwiftCodeNastedDTO(branch))
@@ -38,11 +37,45 @@ func MapToSwiftCodenastedDTOList(branches []models.SwiftCode) []SwiftCodeNastedD
 func MapToSwiftCodeNastedDTO(swiftCode models.SwiftCode) SwiftCodeNastedDTO {
 	dto := SwiftCodeNastedDTO{
 		Address:       swiftCode.Address,
-		BankName:      *swiftCode.BankID,
+		BankName:      *swiftCode.BankName,
 		CountryISO2:   *swiftCode.CountryID,
 		IsHeadquarter: swiftCode.IsHeadquarter,
-		SwiftCode:     swiftCode.CODE,
+		SwiftCode:     swiftCode.Code,
 	}
 
 	return dto
+}
+
+func MapToCountryDTO(country models.Country) CountryDTO {
+
+	return CountryDTO{
+		ISO2:     country.ISO2,
+		Name:     country.Name,
+		Branches: MapToSwiftCodeNastedDTOList(country.SwiftCodes),
+	}
+
+}
+
+func MapToSwiftCodeModel(dto SwiftCodeMainDTO) models.SwiftCode {
+
+	var countryID *string
+
+	if dto.CountryISO2 != "" {
+		countryID = &dto.CountryISO2
+	}
+
+	var bankName *string
+
+	if dto.BankName != "" {
+		bankName = &dto.BankName
+	}
+
+	return models.SwiftCode{
+		Code:          dto.SwiftCode,
+		Address:       dto.Address,
+		IsHeadquarter: *dto.IsHeadquarter,
+		BankName:      bankName,
+		CountryID:     countryID,
+	}
+
 }
