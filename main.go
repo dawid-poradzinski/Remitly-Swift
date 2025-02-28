@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"swift-remitly-app/models"
+	"swift-remitly-app/handlers"
+	models "swift-remitly-app/models/sql"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
@@ -11,7 +12,7 @@ import (
 
 func main() {
 
-	dsn := "root:qwertyuiop@tcp(127.0.0.1:3306)/remitly"
+	dsn := "root:qwertyuiop@tcp(127.0.0.1:3306)/remitlyGO"
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
@@ -29,19 +30,8 @@ func main() {
 
 	router := gin.Default()
 
-	router.GET("/country/:iso2", func(c *gin.Context) {
-
-		iso2 := c.Param("iso2")
-
-		var country models.Country
-		if err := db.Preload("SwiftCodes", func(db *gorm.DB) *gorm.DB {
-			return db.Select("CODE", "Address", "IsHeadquarter", "BankID", "CountryID") // Wybieramy tylko wymagane pola
-		}).Where("ISO2 = ?", iso2).First(&country).Error; err != nil {
-			c.JSON(500, gin.H{"message": "Coudn't find country"})
-			return
-		}
-
-		c.JSON(200, country)
+	router.GET("/v1/swift-codes/:swiftCode", func(c *gin.Context) {
+		handlers.GetSwiftCode(c, db)
 	})
 
 	router.Run("localhost:8080")

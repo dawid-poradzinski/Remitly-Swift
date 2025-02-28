@@ -7,7 +7,7 @@ type SwiftCode struct {
 	CountryID       *string
 	Country         Country `gorm:"foreignKey:CountryID;references:ISO2"`
 	BankID          *string
-	Bank            Bank        `gorm:"foreignKey:BankID;references:Name"`
+	Bank            *Bank       `gorm:"foreignKey:BankID;references:Name"`
 	ParentSwiftCode *string     `gorm:"size:11"`
 	ParentSwift     *SwiftCode  `gorm:"foreignKey:ParentSwiftCode"`
 	Branches        []SwiftCode `gorm:"foreignKey:ParentSwiftCode"`
