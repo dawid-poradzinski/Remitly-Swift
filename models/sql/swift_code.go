@@ -1,6 +1,8 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+)
 
 type SwiftCode struct {
 	Code            string `gorm:"primaryKey;size:11"`
@@ -10,8 +12,8 @@ type SwiftCode struct {
 	Country         Country `gorm:"foreignKey:CountryID;references:ISO2"`
 	BankName        *string
 	Bank            Bank        `gorm:"foreignKey:BankName;references:Name"`
-	ParentSwiftCode *string     `gorm:"size:11"`
-	ParentSwift     *SwiftCode  `gorm:"foreignKey:ParentSwiftCode"`
+	ParentSwiftCode *string     `gorm:"size:11;default:NULL"`
+	ParentSwift     *SwiftCode  `gorm:"foreignKey:ParentSwiftCode;references:Code"`
 	Branches        []SwiftCode `gorm:"foreignKey:ParentSwiftCode"`
 }
 
@@ -37,7 +39,7 @@ func (sc *SwiftCode) AddConnectionsToheadquarter(db *gorm.DB) error {
 
 	if sc.IsHeadquarter {
 
-		if err := db.Where("Code LIKE ? AND parent_swift_code is NULL", sc.Code[:8]+"%").Update("parent_swift_code", sc.Code).Error; err != nil {
+		if err := db.Model(&SwiftCode{}).Where("Code LIKE ? AND parent_swift_code is NULL", sc.Code[:8]+"%").Update("parent_swift_code", sc.Code).Error; err != nil {
 
 		}
 
@@ -51,7 +53,7 @@ func (sc *SwiftCode) RemoveConnections(db *gorm.DB) error {
 
 	if sc.IsHeadquarter {
 
-		if err := db.Where("parent_swift_code = ?", sc.Code).Update("parent_swift_code", nil).Error; err != nil {
+		if err := db.Model(&SwiftCode{}).Where("parent_swift_code = ?", sc.Code).Update("parent_swift_code", nil).Error; err != nil {
 
 		}
 
