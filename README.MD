@@ -141,10 +141,40 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 ```bash
 docker-compose up --build
 ```
+3. On first run application don't have access to database. Check running containers:
 
-3. To stop the containers:
+```bash
+docker ps
+```
+
+4. Get inside mysql:
+```bash
+sudo docker exec -it <container_name> mysql -u root -p
+```
+
+5. Insert password. Default:
+```bash
+rootpassword
+```
+
+6. Create Database:
+```bash
+CREATE DATABASE remitly;
+```
+
+7. To exit mysql:
+```bash
+exit
+```
+
+8. To stop the containers Ctrl+C or:
 ```bash
 docker-compose down
+```
+
+9. You can run application with command:
+```bash
+docker-compose up
 ```
 
 The application will be available at `http://localhost:8080`
