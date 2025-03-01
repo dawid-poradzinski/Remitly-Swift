@@ -1,23 +1,60 @@
 # SWIFT Code Management System
 
 ## Overview
-A Go application for managing SWIFT codes and bank information. This system provides REST APIs for handling SWIFT codes, country data, and bank details.
+A Spring Boot application for managing SWIFT codes and bank information. This system provides REST APIs for handling SWIFT codes, country data, and bank details with support for Excel file uploads.
 
 ## Project Structure
 ```
-swift/
-├── main.go
-├── handlers/              
-│   ├── swift_code_handler.go
-│   └── swift_code_handler_test.go
-└── models/
-    ├── dto/
-    │   ├── mapper.go
-    │   └── swift_dto.go
-    └── sql/
-        ├── bank.go
-        ├── country.go
-        └── swift_code.go
+src/
+├── main/
+│   ├── java/
+│   │   └── pl/dawid/poradzinski/remitly/swift/swift/
+│   │       ├── controller/        # REST endpoints
+│   │       ├── dto/              # Data Transfer Objects
+│   │       ├── exception/         # Custom exceptions
+│   │       ├── mapper/           # Entity-DTO mappers  
+│   │       ├── repository/       # JPA repositories
+│   │       ├── service/          # Business logic
+│   │       └── sql/              # Entity classes
+│   └── resources/
+│       └── application.properties # Configuration
+└── test/
+    └── java/                     # Test classes
+```
+
+## Excel Upload Format Specification
+
+
+### File Requirements
+- Format: `.xlsx`, `.xls`, or `.xlsm`
+- MIME types supported:
+  - `application/vnd.ms-excel`
+  - `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+  - `application/vnd.ms-excel.sheet.macroEnabled.12`
+
+### Excel Structure
+ - Header Row
+   - `The first row should be a header row and will be skipped during processing`
+- Data Rows
+   - `Each subsequent row should contain the following columns in order:`
+```
+| Column | Index | Description | Example |
+|--------|-------|-------------|---------|
+| Country ISO2 | 0 | Two-letter ISO country code | "PL" |
+| SWIFT Code | 1 | Bank SWIFT/BIC code (XXX suffix indicates headquarters) | "BREXPLPWXXX" |
+| Bank Name | 3 | Full name of the bank | "Bank Example SA" |
+| Address | 4 | Bank branch address | "ul. Bankowa 1, 00-000 Warsaw" |
+| Country Name | 6 | Full country name | "POLAND" |
+```
+
+### Special Rules
+- SWIFT codes ending with "XXX" are automatically marked as headquarters
+- Columns 2 and 5 are ignored during processing
+- All values should be provided as text strings
+
+### Example Row
+```
+PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLAND
 ```
 
 ## API Endpoints
@@ -29,6 +66,10 @@ swift/
 - `GET /{swiftCode}` - Get details for a specific SWIFT code
 
 #### POST Endpoints
+- `POST /upload` - Upload SWIFT codes from Excel file
+  - Request: `multipart/form-data` with file parameter. key = "file", value = excel file
+  - Response: Success/error message with count of processed records
+
 - `POST` - Add new SWIFT code
   - Request: SwiftCodeDTO JSON
   - Response: Success message with created SWIFT code ID
@@ -39,7 +80,7 @@ swift/
 ## Data Models
 
 ### SwiftCodeDTO Upload
-```go
+```java
 {
     "address": "string",
     "bankName": "string", 
@@ -51,7 +92,7 @@ swift/
 ```
 
 ### SwiftCodeDTO Response
-```go
+```java
 {
     "address": "string",
     "bankName": "string", 
@@ -64,7 +105,7 @@ swift/
 ```
 
 ### CountryDTO Response
-```go
+```java
 {
     "countryISO2": "string",
     "countryName": "string",
@@ -73,34 +114,74 @@ swift/
 ```
 
 ## Technologies
-- Go
+- Java 21
+- Spring Boot 3.4.2
 - MySQL
+- Maven
 - Docker
 
 ## Building and Running
 
 ### Local Development Setup
-1. Install Go
-
-2. Configure database connection in .env
-
-3. Run the application:
+1. Install **JDK 21** (required for local building and running)
+2. Configure database connection in `src/main/resources/application.properties`
+3. Run database locally with your settings
+4. Build and run the application:
 
 ```bash
-go run main.go
+./mvnw spring-boot:run
 ```
+
 ## OR
 
 ### Docker Deployment
 1. Install Docker
-
 2. Build and run with Docker Compose:
 
 ```bash
 docker-compose up --build
 ```
+3. On first run application don't have access to database. Check running containers:
 
-3. To stop the containers:
+```bash
+docker ps
+```
+
+4. Get inside mysql:
+```bash
+sudo docker exec -it <container_name> mysql -u root -p
+```
+
+5. Insert password. Default:
+```bash
+rootpassword
+```
+
+6. Create Database:
+```bash
+CREATE DATABASE remitlyGO;
+```
+
+7. To exit mysql:
+```bash
+exit
+```
+
+8. To stop the containers Ctrl+C or:
 ```bash
 docker-compose down
+```
+
+9. You can run application with command:
+```bash
+docker-compose up
+```
+
+The application will be available at `http://localhost:8080`
+
+## Testing
+1. Install **JDK 21** (required for local building and running)
+2. Run tests with:
+```bash
+./mvnw test
 ```

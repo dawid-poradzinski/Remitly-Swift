@@ -39,14 +39,14 @@ func main() {
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
 	if err != nil {
-		fmt.Println("Błąd połączenia z bazą danych:", err)
+		fmt.Println("Error on database connection: ", err)
 		return
 	}
 
 	err = db.AutoMigrate(&models.SwiftCode{}, &models.Country{}, &models.Bank{})
 
 	if err != nil {
-		fmt.Println("Bład migracji:", err)
+		fmt.Println("Migration error:", err)
 		return
 	}
 
@@ -68,5 +68,5 @@ func main() {
 		handlers.CreateSwiftCode(c, db)
 	})
 
-	router.Run("localhost:8080")
+	router.Run("0.0.0.0:8080")
 }
