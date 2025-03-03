@@ -5,57 +5,23 @@ A Spring Boot application for managing SWIFT codes and bank information. This sy
 
 ## Project Structure
 ```
-src/
-├── main/
-│   ├── java/
-│   │   └── pl/dawid/poradzinski/remitly/swift/swift/
-│   │       ├── controller/        # REST endpoints
-│   │       ├── dto/              # Data Transfer Objects
-│   │       ├── exception/         # Custom exceptions
-│   │       ├── mapper/           # Entity-DTO mappers  
-│   │       ├── repository/       # JPA repositories
-│   │       ├── service/          # Business logic
-│   │       └── sql/              # Entity classes
-│   └── resources/
-│       └── application.properties # Configuration
-└── test/
-    └── java/                     # Test classes
+swift/
+├── main.go                 # Application entry point
+├── handlers/              
+│   ├── swift_code_handler.go    # HTTP handlers for swift operations
+│   └── swift_code_handler_test.go
+└── models/
+    ├── dto/               # Data Transfer Objects
+    │   ├── mapper.go      # DTO mapping functions
+    │   └── swift_dto.go   # DTO structures
+    └── sql/               # Database models
+        ├── bank.go
+        ├── country.go
+        └── swift_code.go
+
 ```
 
 ## Excel Upload Format Specification
-
-
-### File Requirements
-- Format: `.xlsx`, `.xls`, or `.xlsm`
-- MIME types supported:
-  - `application/vnd.ms-excel`
-  - `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
-  - `application/vnd.ms-excel.sheet.macroEnabled.12`
-
-### Excel Structure
- - Header Row
-   - `The first row should be a header row and will be skipped during processing`
-- Data Rows
-   - `Each subsequent row should contain the following columns in order:`
-```
-| Column | Index | Description | Example |
-|--------|-------|-------------|---------|
-| Country ISO2 | 0 | Two-letter ISO country code | "PL" |
-| SWIFT Code | 1 | Bank SWIFT/BIC code (XXX suffix indicates headquarters) | "BREXPLPWXXX" |
-| Bank Name | 3 | Full name of the bank | "Bank Example SA" |
-| Address | 4 | Bank branch address | "ul. Bankowa 1, 00-000 Warsaw" |
-| Country Name | 6 | Full country name | "POLAND" |
-```
-
-### Special Rules
-- SWIFT codes ending with "XXX" are automatically marked as headquarters
-- Columns 2 and 5 are ignored during processing
-- All values should be provided as text strings
-
-### Example Row
-```
-PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLAND
-```
 
 ## API Endpoints
 
@@ -66,13 +32,8 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 - `GET /{swiftCode}` - Get details for a specific SWIFT code
 
 #### POST Endpoints
-- `POST /upload` - Upload SWIFT codes from Excel file
-  - Request: `multipart/form-data` with file parameter. key = "file", value = excel file
-  - Response: Success/error message with count of processed records
-
 - `POST` - Add new SWIFT code
   - Request: SwiftCodeDTO JSON
-  - Response: Success message with created SWIFT code ID
 
 #### DELETE Endpoints
 - `DELETE /{swiftCode}` - Delete specific SWIFT code
@@ -80,7 +41,7 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 ## Data Models
 
 ### SwiftCodeDTO Upload
-```java
+```go
 {
     "address": "string",
     "bankName": "string", 
@@ -92,7 +53,7 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 ```
 
 ### SwiftCodeDTO Response
-```java
+```go
 {
     "address": "string",
     "bankName": "string", 
@@ -105,7 +66,7 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 ```
 
 ### CountryDTO Response
-```java
+```go
 {
     "countryISO2": "string",
     "countryName": "string",
@@ -114,22 +75,23 @@ PL | BREXPLPWXXX | - | Bank Example SA | ul. Bankowa 1, 00-000 Warsaw | - | POLA
 ```
 
 ## Technologies
-- Java 21
-- Spring Boot 3.4.2
+- Go 1.21
 - MySQL
-- Maven
 - Docker
 
 ## Building and Running
 
 ### Local Development Setup
-1. Install **JDK 21** (required for local building and running)
-2. Configure database connection in `src/main/resources/application.properties`
+1. Install **Go 1.21** (required for local building and running)
+2. Configure database connection in `.env`
 3. Run database locally with your settings
-4. Build and run the application:
-
+4. Build the application:
 ```bash
-./mvnw spring-boot:run
+go mod download
+```
+4. Run the application:
+```bash
+go run main.go
 ```
 
 ## OR
@@ -180,8 +142,8 @@ docker-compose up
 The application will be available at `http://localhost:8080`
 
 ## Testing
-1. Install **JDK 21** (required for local building and running)
+1. Install **Go 1.21** (required for local building and running)
 2. Run tests with:
 ```bash
-./mvnw test
+go test ./...
 ```
