@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"swift-remitly-app/models/dto"
 	models "swift-remitly-app/models/sql"
+	"swift-remitly-app/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
@@ -157,4 +159,44 @@ func CreateSwiftCode(c *gin.Context, db *gorm.DB) {
 	}
 
 	c.JSON(201, gin.H{"message": "SwiftCode created"})
+}
+
+func UploadExcelHandler(c *gin.Context) {
+
+	// Get from body
+
+	file, err := c.FormFile("file")
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "File not found"})
+		return
+	}
+
+	// Validate mime
+
+	if err := services.ValidateExcelFile(file.Header.Get("Content-Type")); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err})
+		return
+	}
+
+	f, err := file.Open()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Failed to open file"})
+		return
+	}
+
+	defer f.Close()
+
+	swiftCodes, err := services.ReadExcelData(f)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err})
+		return
+	}
+
+	//TODO ValidateSwiftCodes
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Read %d swift codes", len(swiftCodes))})
+
 }

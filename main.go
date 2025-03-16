@@ -68,5 +68,9 @@ func main() {
 		handlers.CreateSwiftCode(c, db)
 	})
 
+	router.POST("/v1/swift-codes/excel", func(c *gin.Context) {
+		handlers.UploadExcelHandler(c)
+	})
+
 	router.Run("0.0.0.0:8080")
 }
